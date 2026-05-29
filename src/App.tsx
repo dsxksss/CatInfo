@@ -310,7 +310,7 @@ export default function App() {
                 <div data-tauri-drag-region>
                   <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1" data-tauri-drag-region>
                     {lang === 'zh' ? '喵一眼' : 'Cat Info'}
-                    <span className="text-[9px] px-1 bg-zinc-900 text-zinc-500 font-mono rounded" data-tauri-drag-region>v1.2</span>
+                    <span className="text-[9px] px-1 bg-zinc-900 text-zinc-500 font-mono rounded" data-tauri-drag-region>v1.0.0</span>
                   </h1>
                 </div>
               </div>
