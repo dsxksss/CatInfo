@@ -15,6 +15,11 @@
   <a href="./README_zh.md"><b>简体中文</b></a>
 </p>
 
+> [!IMPORTANT]
+> **Windows Only / 仅支持 Windows 系统**
+> This application relies heavily on native Windows APIs (Win32, PDH, DXGI) and is exclusively designed for Windows operating systems (Windows 10/11).
+> 本项目深度依赖 Windows 原生 API（Win32, PDH, DXGI），仅支持 Windows 操作系统（Windows 10/11）。
+
 <p align="center">
   <a href="#-screenshots"><b>Screenshots</b></a> •
   <a href="#-core-features"><b>Core Features</b></a> •
@@ -22,6 +27,7 @@
   <a href="#-development--build"><b>Development</b></a> •
   <a href="#-deep-desktop-integration"><b>System Integration</b></a>
 </p>
+
 
 ---
 

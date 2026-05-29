@@ -15,6 +15,11 @@
   <b>简体中文</b>
 </p>
 
+> [!IMPORTANT]
+> **仅支持 Windows 系统 / Windows Only**
+> 本项目深度依赖 Windows 原生 API（Win32, PDH, DXGI），仅支持 Windows 操作系统（Windows 10/11）。
+> This application relies heavily on native Windows APIs (Win32, PDH, DXGI) and is exclusively designed for Windows operating systems (Windows 10/11).
+
 <p align="center">
   <a href="#-界面预览"><b>界面预览</b></a> •
   <a href="#-核心特性"><b>核心特性</b></a> •
@@ -22,6 +27,7 @@
   <a href="#-开发与构建"><b>开发与构建</b></a> •
   <a href="#-深度系统集成"><b>深度集成</b></a>
 </p>
+
 
 ---
 
