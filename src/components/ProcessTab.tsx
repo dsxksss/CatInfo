@@ -37,6 +37,7 @@ interface ProcessTabProps {
   searchQuery?: string;
   onSearchQueryChange?: (val: string) => void;
   loadIconForPid: (pid: number) => void;
+  confirmKill?: boolean;
 }
 
 const popularDescriptions: Record<string, string> = {
@@ -64,6 +65,7 @@ export default function ProcessTab({
   searchQuery: propSearchQuery,
   onSearchQueryChange,
   loadIconForPid: _loadIconForPid,
+  confirmKill = true,
 }: ProcessTabProps) {
   const currentPerf = usePerfStore((s) => s.current);
   const systemCpu = currentPerf?.cpu_usage || 0;
@@ -90,6 +92,7 @@ export default function ProcessTab({
   const searchQuery = propSearchQuery !== undefined ? propSearchQuery : localSearchQuery;
   const setSearchQuery = onSearchQueryChange !== undefined ? onSearchQueryChange : setLocalSearchQuery;
   const [selectedProcess, setSelectedProcess] = useState<ProcessItem | null>(null);
+  const [pendingKill, setPendingKill] = useState<{ pid: number; name: string; isTree: boolean } | null>(null);
   
   // View mode switcher: tree lists vs grid table
   const [viewMode, setViewMode] = useState<'tree' | 'grid'>('grid');
@@ -261,11 +264,32 @@ export default function ProcessTab({
     }
   };
 
-  const handleForceKill = (pid: number, name: string) =>
-    runKill(pid, name, () => onKillProcess(pid));
+  const handleForceKill = (pid: number, name: string) => {
+    if (confirmKill) {
+      setPendingKill({ pid, name, isTree: false });
+    } else {
+      runKill(pid, name, () => onKillProcess(pid));
+    }
+  };
 
-  const handleKillTree = (pid: number, name: string) =>
-    runKill(pid, name, () => onKillProcessTree(pid));
+  const handleKillTree = (pid: number, name: string) => {
+    if (confirmKill) {
+      setPendingKill({ pid, name, isTree: true });
+    } else {
+      runKill(pid, name, () => onKillProcessTree(pid));
+    }
+  };
+
+  const handleConfirmKill = () => {
+    if (!pendingKill) return;
+    const { pid, name, isTree } = pendingKill;
+    setPendingKill(null);
+    if (isTree) {
+      runKill(pid, name, () => onKillProcessTree(pid));
+    } else {
+      runKill(pid, name, () => onKillProcess(pid));
+    }
+  };
 
   // Perform search query filter
   const filteredProcesses = useMemo(() => {
@@ -371,7 +395,7 @@ export default function ProcessTab({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
         
         {/* LEFTSIDE COLUMN: Grouped Collapsible task lists */}
-        <div className={`flex flex-col gap-6 transition-all duration-300 ${syncSelectedProcess ? 'xl:col-span-8' : 'xl:col-span-12'}`}>
+        <div className="flex flex-col gap-6 xl:col-span-12">
           
           {/* Top controller rail for search and custom launch */}
           <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-zinc-950/40 border border-[#141822]/80 p-4 rounded-2xl">
@@ -659,28 +683,41 @@ export default function ProcessTab({
 
         </div>
 
-        {/* RIGHTSIDE COLUMN: Property Inspector Dashboard */}
-        <AnimatePresence>
-          {syncSelectedProcess ? (
+      </div>
+
+      {/* Dynamic Process Drawer Overlay Panel */}
+      <AnimatePresence>
+        {syncSelectedProcess && (
+          <>
+            {/* Backdrop Overlay */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-              className="xl:col-span-4 flex flex-col bg-zinc-950/40 border border-[#141822]/80 rounded-2xl overflow-hidden shadow-2xl p-5 relative min-h-[400px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedProcess(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-45 cursor-pointer"
+            />
+
+            {/* Sliding Drawer Container */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="fixed top-0 right-0 h-screen w-[460px] max-w-full bg-[#08090d]/95 border-l border-zinc-800/40 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] z-50 flex flex-col p-6"
               id="node-inspector-properties"
             >
               {/* Properties Header info */}
               <div className="flex justify-between items-start pb-4 border-b border-[#11141c] select-none">
                 <div>
-                  <span className="text-[9px] text-[#006fee] uppercase font-bold font-mono-premium block mb-0.5 tracking-wider">{t.propertiesMetadata}</span>
+                  <span className="text-[9px] text-[#10b981] uppercase font-bold font-mono-premium block mb-0.5 tracking-wider">{t.propertiesMetadata}</span>
                   <div className="flex items-center gap-2">
                     {syncSelectedProcess.icon ? (
-                      <img src={syncSelectedProcess.icon} alt="" className="w-4 h-4 shrink-0" />
+                      <img src={syncSelectedProcess.icon} alt="" className="w-5 h-5 shrink-0" />
                     ) : (
-                      <Terminal size={14} className="text-[#006fee] shrink-0" />
+                      <Terminal size={16} className="text-[#10b981] shrink-0" />
                     )}
-                    <p className="text-base font-extrabold text-white font-geom truncate break-all max-w-[160px]" title={syncSelectedProcess.name}>
+                    <p className="text-lg font-extrabold text-white font-geom truncate break-all max-w-[280px]" title={syncSelectedProcess.name}>
                       {syncSelectedProcess.name}
                     </p>
                   </div>
@@ -688,28 +725,28 @@ export default function ProcessTab({
                 </div>
                 <button
                   onClick={() => setSelectedProcess(null)}
-                  className="text-zinc-500 hover:text-white bg-zinc-900/50 border border-zinc-800/80 p-1 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="text-zinc-400 hover:text-white bg-zinc-900/60 border border-zinc-800/80 p-1.5 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer outline-none"
                 >
-                  <X size={14} />
+                  <X size={15} />
                 </button>
               </div>
 
               {/* Specs detailed panel */}
-              <div className="flex-grow space-y-4 py-4 select-none overflow-y-auto scrollbar-thin">
+              <div className="flex-grow space-y-5 py-5 select-none overflow-y-auto scrollbar-none">
                 
                 {/* Visual telemetry dials */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="bg-zinc-950 p-3 rounded-xl border border-[#11141c] flex flex-col">
-                    <span className="text-[9px] text-zinc-600 uppercase font-black font-mono-premium flex items-center gap-1">
-                      <Cpu size={12} className="text-[#006fee]" /> {t.cpuAffinity}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-[#11141c] flex flex-col">
+                    <span className="text-[9px] text-zinc-500 uppercase font-black font-mono-premium flex items-center gap-1.5">
+                      <Cpu size={13} className="text-[#10b981]" /> {t.cpuAffinity}
                     </span>
-                    <span className="font-mono-premium text-sm font-bold text-zinc-200 mt-1">{syncSelectedProcess.cpu.toFixed(1)}%</span>
+                    <span className="font-mono-premium text-base font-bold text-zinc-200 mt-1">{syncSelectedProcess.cpu.toFixed(1)}%</span>
                   </div>
-                  <div className="bg-zinc-950 p-3 rounded-xl border border-[#11141c] flex flex-col">
-                    <span className="text-[9px] text-zinc-600 uppercase font-black font-mono-premium flex items-center gap-1">
-                      <Database size={12} className="text-[#17c964]" /> {t.committedMem}
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-[#11141c] flex flex-col">
+                    <span className="text-[9px] text-zinc-500 uppercase font-black font-mono-premium flex items-center gap-1.5">
+                      <Database size={13} className="text-[#10b981]" /> {t.committedMem}
                     </span>
-                    <span className="font-mono-premium text-sm font-bold text-zinc-200 mt-1">
+                    <span className="font-mono-premium text-base font-bold text-zinc-200 mt-1">
                       {syncSelectedProcess.memory >= 1024
                         ? `${(syncSelectedProcess.memory / 1024).toFixed(2)} GB`
                         : `${syncSelectedProcess.memory.toFixed(1)} MB`}
@@ -718,38 +755,38 @@ export default function ProcessTab({
                 </div>
 
                 {/* Sub-system structural definitions */}
-                <div className="p-3 bg-zinc-950 border border-[#11141c] rounded-xl space-y-2.5 text-[11px] font-mono-premium">
+                <div className="p-4 bg-zinc-950 border border-[#11141c] rounded-xl space-y-3.5 text-[11px] font-mono-premium">
                   <div>
-                    <span className="text-zinc-600 uppercase tracking-widest text-[8px] block select-none font-bold">{t.executionDirectory}</span>
-                    <span className="text-zinc-300 break-all leading-normal select-all">{syncSelectedProcess.path}</span>
+                    <span className="text-zinc-650 uppercase tracking-widest text-[8px] block select-none font-bold mb-1">{t.executionDirectory}</span>
+                    <span className="text-zinc-300 break-all leading-normal select-all font-mono">{syncSelectedProcess.path}</span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-[#11141c]/50">
+                  <div className="grid grid-cols-2 gap-3 pt-3.5 border-t border-[#11141c]/50">
                     <div>
-                      <span className="text-zinc-600 uppercase tracking-widest text-[8px] block font-bold">{t.threadCount}</span>
-                      <span className="text-zinc-200 block font-bold">{syncSelectedProcess.threads} {lang === 'zh' ? '线程句柄' : 'Threads'}</span>
+                      <span className="text-zinc-650 uppercase tracking-widest text-[8px] block font-bold">{t.threadCount}</span>
+                      <span className="text-zinc-200 block font-bold mt-0.5">{syncSelectedProcess.threads} {lang === 'zh' ? '线程句柄' : 'Threads'}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-600 uppercase tracking-widest text-[8px] block font-bold">{t.domainOwner}</span>
-                      <span className="text-zinc-200 block font-semibold">{syncSelectedProcess.user}</span>
+                      <span className="text-zinc-650 uppercase tracking-widest text-[8px] block font-bold">{t.domainOwner}</span>
+                      <span className="text-zinc-200 block font-semibold mt-0.5">{syncSelectedProcess.user}</span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-[#11141c]/50">
+                  <div className="grid grid-cols-2 gap-3 pt-3.5 border-t border-[#11141c]/50">
                     <div>
-                      <span className="text-zinc-600 uppercase tracking-widest text-[8px] block font-bold">{t.taskScheduler}</span>
-                      <span className="text-zinc-200 block font-semibold">{lang === 'zh' ? `${syncSelectedProcess.priority === 'Low' ? '低优先' : syncSelectedProcess.priority === 'Normal' ? '正常优先' : syncSelectedProcess.priority === 'High' ? '高优先' : '实时'}` : syncSelectedProcess.priority} {lang === 'zh' ? '分配' : 'Allocation'}</span>
+                      <span className="text-zinc-650 uppercase tracking-widest text-[8px] block font-bold">{t.taskScheduler}</span>
+                      <span className="text-zinc-200 block font-semibold mt-0.5">{lang === 'zh' ? `${syncSelectedProcess.priority === 'Low' ? '低优先' : syncSelectedProcess.priority === 'Normal' ? '正常优先' : syncSelectedProcess.priority === 'High' ? '高优先' : '实时'}` : syncSelectedProcess.priority} {lang === 'zh' ? '分配' : 'Allocation'}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-600 uppercase tracking-widest text-[8px] block font-bold">{t.ringContext}</span>
-                      <span className="text-zinc-200 block font-bold uppercase">{syncSelectedProcess.user === 'SYSTEM' ? 'Ring 0' : 'Ring 3'}</span>
+                      <span className="text-zinc-650 uppercase tracking-widest text-[8px] block font-bold">{t.ringContext}</span>
+                      <span className="text-zinc-200 block font-bold uppercase mt-0.5">{syncSelectedProcess.user === 'SYSTEM' ? 'Ring 0' : 'Ring 3'}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Plain description text block */}
-                <div className="p-3 bg-zinc-950 border border-[#11141c] rounded-xl text-[11px] leading-relaxed text-zinc-400">
-                  <span className="text-zinc-600 uppercase tracking-widest text-[8px] font-bold block mb-1 select-none">{t.executionManifest}</span>
+                <div className="p-4 bg-zinc-950 border border-[#11141c] rounded-xl text-[11px] leading-relaxed text-zinc-400">
+                  <span className="text-zinc-650 uppercase tracking-widest text-[8px] font-bold block mb-1.5 select-none">{t.executionManifest}</span>
                   {syncSelectedProcess.description}
                 </div>
 
@@ -759,9 +796,9 @@ export default function ProcessTab({
               <div className="pt-4 border-t border-[#11141c] flex flex-col gap-2 mt-auto">
                 <button
                   onClick={() => handleForceKill(syncSelectedProcess.pid, syncSelectedProcess.name)}
-                  className="w-full bg-[#f31260]/10 hover:bg-[#f31260] text-[#f31260] hover:text-white border border-[#f31260]/20 font-mono-premium font-bold py-2 px-3 rounded-xl text-xs transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-95 hover:shadow-lg hover:shadow-red-950/20"
+                  className="w-full bg-[#f31260]/10 hover:bg-[#f31260] text-[#f31260] hover:text-white border border-[#f31260]/20 font-mono-premium font-bold py-2.5 px-3 rounded-xl text-xs transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 active:scale-95 hover:shadow-lg hover:shadow-red-950/20"
                 >
-                  <Trash2 size={12} /> {t.forceTerminate}
+                  <Trash2 size={13} /> {t.forceTerminate}
                 </button>
                 <button
                   onClick={() => handleKillTree(syncSelectedProcess.pid, syncSelectedProcess.name)}
@@ -772,16 +809,110 @@ export default function ProcessTab({
               </div>
 
             </motion.div>
-          ) : (
-            <div className="xl:col-span-4 hidden xl:flex flex-col justify-center items-center text-center p-6 bg-zinc-950/20 border border-dashed border-[#11141c]/80 rounded-2xl select-none text-zinc-500">
-              <ShieldAlert className="w-8 h-8 text-zinc-700 mb-2.5 animate-pulse" />
-              <p className="font-mono-premium text-xs">{t.noProcessSelected}</p>
-              <p className="text-[10px] text-zinc-500 font-medium max-w-[200px] mt-1.5">{t.selectProcessPrompt}</p>
-            </div>
-          )}
-        </AnimatePresence>
+          </>
+        )}
+      </AnimatePresence>
 
-      </div>
+      {/* Dynamic Process Kill Confirmation Modal */}
+      <AnimatePresence>
+        {pendingKill && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 select-none">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPendingKill(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="bg-[#0b0c10] border border-red-500/25 rounded-2xl p-6 w-[420px] max-w-full shadow-[0_0_50px_rgba(243,18,96,0.15)] flex flex-col relative z-[70] font-sans text-zinc-300"
+            >
+              <div className="flex items-center gap-3 pb-3 border-b border-[#11141c]">
+                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                  <ShieldAlert className="w-4 h-4 text-red-500" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-white">
+                    {lang === 'zh' ? '终止进程二次确认' : 'Confirm Process Termination'}
+                  </h4>
+                  <p className="text-[9px] text-red-400 font-mono-premium uppercase tracking-widest font-bold mt-0.5">
+                    {lang === 'zh' ? '警告：系统保护操作' : 'Warning: Protected System Operation'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="py-5 text-xs leading-relaxed space-y-3">
+                <p className="text-zinc-200">
+                  {lang === 'zh' 
+                    ? `您确定要强行终止该进程运行吗？` 
+                    : `Are you sure you want to forcibly terminate this active process?`}
+                </p>
+                <div className="p-3 bg-zinc-950 rounded-xl border border-[#11141c] font-mono text-[11px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">{lang === 'zh' ? '进程映像' : 'Image Name'}:</span>
+                    <span className="text-white font-bold">{pendingKill.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">{lang === 'zh' ? '进程 PID' : 'Process PID'}:</span>
+                    <span className="text-zinc-300 font-bold">#{pendingKill.pid}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">{lang === 'zh' ? '终止模式' : 'Kill Mode'}:</span>
+                    <span className={pendingKill.isTree ? 'text-amber-500 font-bold' : 'text-red-500 font-bold'}>
+                      {pendingKill.isTree 
+                        ? (lang === 'zh' ? '进程树强杀 (SIGKILL)' : 'Process Tree (SIGKILL)') 
+                        : (lang === 'zh' ? '单映像终止 (SIGTERM)' : 'Single Process (SIGTERM)')}
+                    </span>
+                  </div>
+                </div>
+
+                {pendingKill.isTree && (
+                  <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/10 p-2.5 rounded-lg">
+                    ⚠️ {lang === 'zh' 
+                      ? '注意：这将会递归终止此进程及其下属的所有子进程、孙子进程！' 
+                      : 'Warning: This will terminate all nested child and grandchild processes launched by this app.'}
+                  </p>
+                )}
+
+                {/* Warning for critical system processes */}
+                {(pendingKill.name.toLowerCase() === 'explorer.exe' || 
+                  pendingKill.name.toLowerCase() === 'svchost.exe' || 
+                  pendingKill.name.toLowerCase() === 'services.exe' || 
+                  pendingKill.name.toLowerCase() === 'wininit.exe' || 
+                  pendingKill.name.toLowerCase() === 'system') && (
+                  <p className="text-[10px] text-red-400 bg-red-500/5 border border-red-500/10 p-2.5 rounded-lg font-semibold">
+                    🔥 {lang === 'zh' 
+                      ? '关键系统服务：终止此核心进程可能会引发 Windows 瞬间蓝屏崩溃（BSOD）或桌面异常重启！' 
+                      : 'Critical System process: Terminating this core worker will cause immediate system crash or white screen!'}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-[#11141c]">
+                <button
+                  onClick={() => setPendingKill(null)}
+                  className="flex-1 bg-zinc-900 hover:bg-zinc-800 border border-[#11141c] text-zinc-300 font-bold py-2 px-4 rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center outline-none select-none"
+                >
+                  {lang === 'zh' ? '取消' : 'Cancel'}
+                </button>
+                <button
+                  onClick={handleConfirmKill}
+                  className="flex-1 bg-[#f31260] hover:bg-[#f31260]/90 text-white font-extrabold py-2 px-4 rounded-xl text-xs cursor-pointer active:scale-95 transition-all text-center outline-none select-none shadow-lg shadow-red-950/20"
+                >
+                  {lang === 'zh' ? '强行终止' : 'Force Terminate'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

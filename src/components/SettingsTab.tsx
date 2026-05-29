@@ -1,4 +1,4 @@
-import { Sliders, Power } from 'lucide-react';
+import { Sliders, Power, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 
@@ -9,6 +9,8 @@ interface SettingsTabProps {
   cpuUsage: number;
   memoryUsage: number;
   lang?: 'en' | 'zh';
+  confirmKill: boolean;
+  setConfirmKill: (val: boolean) => void;
 }
 
 export default function SettingsTab({
@@ -18,6 +20,8 @@ export default function SettingsTab({
   cpuUsage: _cpuUsage,
   memoryUsage: _memoryUsage,
   lang = 'en',
+  confirmKill,
+  setConfirmKill,
 }: SettingsTabProps) {
   const [autostart, setAutostart] = useState(false);
   const [autostartBusy, setAutostartBusy] = useState(true);
@@ -123,6 +127,42 @@ export default function SettingsTab({
                 <span
                   className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
                     autostart ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Confirm Kill toggle */}
+          <div className="space-y-3 pt-4 border-t border-zinc-900">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-2.5">
+                <Shield size={16} className="text-[#006fee] mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs font-semibold text-zinc-300 block">
+                    {lang === 'zh' ? '终止进程二次确认' : 'Confirm Before Killing'}
+                  </span>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">
+                    {lang === 'zh'
+                      ? '在终止/强杀进程前弹出二次确认窗口，防止误触'
+                      : 'Show a confirmation dialog before terminating processes to prevent accidental clicks'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={confirmKill}
+                aria-label={lang === 'zh' ? '终止进程二次确认' : 'Confirm Before Killing'}
+                onClick={() => setConfirmKill(!confirmKill)}
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  confirmKill ? 'bg-[#006fee]' : 'bg-zinc-700'
+                }`}
+                id="confirm-kill-toggle"
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    confirmKill ? 'translate-x-[18px]' : 'translate-x-[3px]'
                   }`}
                 />
               </button>
