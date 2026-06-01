@@ -580,6 +580,7 @@ export default function App() {
                     lang={lang}
                     cpuFreq={cpuFreq}
                     memoryTotalGb={memoryTotalGb}
+                    pollingInterval={pollingInterval}
                   />
                 )}
                 {activeTab === 'processes' && (

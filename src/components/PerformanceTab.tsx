@@ -25,6 +25,7 @@ interface PerformanceTabProps {
   lang?: 'en' | 'zh';
   cpuFreq?: number; // in MHz
   memoryTotalGb?: number;
+  pollingInterval?: number; // added for dynamic sync
 }
 
 export default function PerformanceTab({
@@ -43,6 +44,7 @@ export default function PerformanceTab({
   lang = 'en',
   cpuFreq = 3400,
   memoryTotalGb = 16.0,
+  pollingInterval = 1000,
 }: PerformanceTabProps) {
   const t = translations[lang];
   // We can choose which card's large interactive chart we are actively viewing
@@ -56,6 +58,12 @@ export default function PerformanceTab({
 
   const formattedCpuFreq = cpuFreq > 0 ? `${(cpuFreq / 1000).toFixed(2)} GHz` : '3.40 GHz';
   const usedMemoryGb = ((memoryUsage / 100) * memoryTotalGb).toFixed(1);
+
+  // Dynamic Refresh Interval Text
+  const intervalSecs = (pollingInterval / 1000).toFixed(1).replace(/\.0$/, '');
+  const displayInterval = lang === 'zh' 
+    ? (intervalSecs === '1' ? '每秒自动更新一次' : `每 ${intervalSecs} 秒自动更新一次`)
+    : `Interval: ${intervalSecs}s • Window: 60s`;
 
   return (
     <div className="flex flex-col gap-6" id="performance-tab">
@@ -276,7 +284,7 @@ export default function PerformanceTab({
                 </span>
               </div>
               <div className="h-4 w-[1px] bg-zinc-800"></div>
-              <span className="text-zinc-500">{t.intervalWindow}</span>
+              <span className="text-zinc-500">{displayInterval}</span>
             </div>
           </div>
 
