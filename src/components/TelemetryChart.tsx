@@ -128,10 +128,10 @@ export default function TelemetryChart({
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      ctx.moveTo(getX(0), getY(0));
+      ctx.moveTo(getX(0), getY(data[0]));
       
       for (let i = 1; i < data.length; i++) {
-        ctx.lineTo(getX(i), getY(i));
+        ctx.lineTo(getX(i), getY(data[i]));
       }
 
       ctx.lineTo(getX(data.length - 1), margin.top + chartHeight);
