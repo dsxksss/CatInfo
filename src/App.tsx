@@ -271,10 +271,7 @@ export default function App() {
     await invoke('kill_process_elevated', { pid });
   };
 
-  const handleAddCustomProcess = (name: string) => {
-    // Adding simulated user run indicator inside the store (falls back to process logs)
-    console.log(`Command to spawn process received in sandbox: ${name}`);
-  };
+
 
   const handleResetProcesses = () => {
     console.log("Telemetry feed synchronized manually.");
@@ -314,13 +311,13 @@ export default function App() {
             {/* Header / Brand Title block */}
             <div className="p-5 flex items-center justify-between border-b border-[#11141c]" data-tauri-drag-region>
               <div className="flex items-center gap-2.5" data-tauri-drag-region>
-                <div className="w-6 h-6 rounded-lg overflow-hidden flex items-center justify-center shadow-lg border border-zinc-800/80 bg-transparent" data-tauri-drag-region>
+                <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-transparent logo-container-wrapper" data-tauri-drag-region>
                   <img src="/logo.png?v=3" className="w-full h-full object-contain p-0.5" data-tauri-drag-region alt="Logo" />
                 </div>
                 <div data-tauri-drag-region>
                   <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1" data-tauri-drag-region>
                     {lang === 'zh' ? '喵一眼' : 'Cat Info'}
-                    <span className="text-[9px] px-1 bg-zinc-900 text-zinc-500 font-mono rounded" data-tauri-drag-region>v1.1.0</span>
+                    <span className="text-[9px] px-1.5 py-0.5 font-mono rounded-md version-badge inline-flex items-center" data-tauri-drag-region>v1.2.0</span>
                   </h1>
                 </div>
               </div>
@@ -589,7 +586,6 @@ export default function App() {
                     onKillProcess={handleKillProcess}
                     onKillProcessTree={handleKillProcessTree}
                     onKillProcessElevated={handleKillProcessElevated}
-                    onAddCustomProcess={handleAddCustomProcess}
                     lang={lang}
                     searchQuery={globalSearchQuery || undefined}
                     onSearchQueryChange={setGlobalSearchQuery}

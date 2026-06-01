@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, X, Play, ChevronRight, ChevronDown,
+  Search, X, ChevronRight, ChevronDown,
   Terminal, Shield, FileCode, Cpu, Database,
   Trash2, ShieldAlert, HelpCircle, AppWindow, Cog
 } from 'lucide-react';
@@ -32,7 +32,6 @@ interface ProcessTabProps {
   onKillProcess: (pid: number) => Promise<void>;
   onKillProcessTree: (pid: number) => Promise<void>;
   onKillProcessElevated: (pid: number) => Promise<void>;
-  onAddCustomProcess?: (name: string) => void;
   lang?: 'en' | 'zh';
   searchQuery?: string;
   onSearchQueryChange?: (val: string) => void;
@@ -60,7 +59,6 @@ export default function ProcessTab({
   onKillProcess,
   onKillProcessTree,
   onKillProcessElevated,
-  onAddCustomProcess,
   lang = 'en',
   searchQuery: propSearchQuery,
   onSearchQueryChange,
@@ -124,8 +122,7 @@ export default function ProcessTab({
     }
   }, [searchQuery]);
 
-  // Custom process launcher state
-  const [customProcName, setCustomProcName] = useState('');
+
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'info' | 'danger' }[]>([]);
 
   // Toast dispatch helper
@@ -184,27 +181,7 @@ export default function ProcessTab({
     return current || null;
   }, [mappedProcesses, selectedProcess]);
 
-  const handleLaunchApp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customProcName.trim()) return;
-    
-    let cleanName = customProcName.trim();
-    if (!cleanName.toLowerCase().endsWith('.exe')) {
-      cleanName = cleanName + '.exe';
-    }
 
-    if (onAddCustomProcess) {
-      onAddCustomProcess(cleanName);
-    }
-    
-    addToast(
-      lang === 'zh'
-        ? `成功发送进程挂载指令: ${cleanName}`
-        : `Dispatched process mount command: ${cleanName}`,
-      'success'
-    );
-    setCustomProcName('');
-  };
 
   const killFailedMessage = (pid: number, name: string, err: unknown) =>
     lang === 'zh'
@@ -450,23 +427,7 @@ export default function ProcessTab({
                 />
               </div>
 
-              {/* Dynamic Executable launcher */}
-              <form onSubmit={handleLaunchApp} className="flex gap-2">
-                <input
-                  type="text"
-                  required
-                  placeholder={lang === 'zh' ? '可执行文件.exe' : 'launch.exe'}
-                  value={customProcName}
-                  onChange={(e) => setCustomProcName(e.target.value)}
-                  className="bg-zinc-950 border border-[#141822] focus:border-zinc-800 rounded-lg text-[11px] py-1.5 px-3 text-zinc-200 placeholder-zinc-600 outline-none w-32 font-mono-premium"
-                />
-                <button
-                  type="submit"
-                  className="bg-white hover:bg-zinc-100 text-black text-[11px] font-extrabold py-1.5 px-3 rounded-lg transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-sm"
-                >
-                  <Play size={10} fill="currentColor" /> {lang === 'zh' ? '运行' : 'Run'}
-                </button>
-              </form>
+
 
             </div>
           </div>
