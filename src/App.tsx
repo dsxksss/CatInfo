@@ -551,7 +551,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
-                className="w-full h-full"
+                className="w-full"
               >
                 {activeTab === 'dashboard' && (
                   <DashboardTab
