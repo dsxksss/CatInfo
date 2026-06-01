@@ -61,12 +61,12 @@ export default function PerformanceTab({
     <div className="flex flex-col gap-6" id="performance-tab">
       
       {/* Multi-card Quick Selector Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="telemetry-metro-grid">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="telemetry-metro-grid">
         
         {/* CPU Card */}
         <button
           onClick={() => setActiveMetricTab('cpu')}
-          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full ${
+          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full max-w-[245px] mx-auto ${
             activeMetricTab === 'cpu' ? 'border-[#006fee] bg-zinc-900/40 glow-blue' : 'bg-zinc-900/80 border-zinc-800'
           }`}
           id="cpu-metric-card"
@@ -102,7 +102,7 @@ export default function PerformanceTab({
         {/* Memory Card */}
         <button
           onClick={() => setActiveMetricTab('memory')}
-          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full ${
+          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full max-w-[245px] mx-auto ${
             activeMetricTab === 'memory' ? 'border-[#17c964] bg-zinc-900/40 glow-green' : 'bg-zinc-900/80 border-zinc-800'
           }`}
           id="memory-metric-card"
@@ -140,7 +140,7 @@ export default function PerformanceTab({
         {/* Disk Card */}
         <button
           onClick={() => setActiveMetricTab('disk')}
-          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full ${
+          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full max-w-[245px] mx-auto ${
             activeMetricTab === 'disk' ? 'border-[#f5a524] bg-zinc-900/40 glow-red' : 'bg-zinc-900/80 border-zinc-800'
           }`}
           id="disk-metric-card"
@@ -177,7 +177,7 @@ export default function PerformanceTab({
         {/* Network Card */}
         <button
           onClick={() => setActiveMetricTab('network')}
-          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full ${
+          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full max-w-[245px] mx-auto ${
             activeMetricTab === 'network' ? 'border-[#006fee] bg-zinc-900/40 glow-blue' : 'bg-zinc-900/80 border-zinc-800'
           }`}
           id="network-metric-card"
@@ -213,7 +213,7 @@ export default function PerformanceTab({
         {/* GPU Card */}
         <button
           onClick={() => setActiveMetricTab('gpu')}
-          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full ${
+          className={`card p-5 flex flex-col justify-between text-left transition-all hover:border-zinc-700/60 active:scale-[0.98] cursor-pointer h-full w-full max-w-[245px] mx-auto ${
             activeMetricTab === 'gpu' ? 'border-[#9353d3] bg-zinc-900/40' : 'bg-zinc-900/80 border-zinc-800'
           }`}
           id="gpu-metric-card"
