@@ -22,11 +22,6 @@
         "resizable": true
       }
     ],
-    "trayIcon": {
-      "iconPath": "icons/icon.ico",
-      "iconAsTemplate": true,
-      "tooltip": "Cat Info"
-    },
     "security": {
       "csp": null
     }

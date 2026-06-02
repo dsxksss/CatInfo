@@ -47,6 +47,7 @@ pub fn run() {
 
             // Build tray menu
             use tauri::{
+                image::Image,
                 menu::{MenuBuilder, MenuItemBuilder},
                 tray::TrayIconBuilder,
             };
@@ -55,7 +56,10 @@ pub fn run() {
             let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
             let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
 
+            let icon = Image::from_bytes(include_bytes!("../icons/icon.ico"))?;
+
             let _tray = TrayIconBuilder::new()
+                .icon(icon)
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "show" => {
