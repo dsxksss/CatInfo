@@ -51,6 +51,36 @@ fn window_owner_pids() -> HashSet<u32> {
     set
 }
 
+fn get_active_pids() -> Option<HashSet<u32>> {
+    unsafe {
+        use windows::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+        use windows::Win32::System::Diagnostics::ToolHelp::{
+            CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32,
+            TH32CS_SNAPPROCESS,
+        };
+
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0).unwrap_or(INVALID_HANDLE_VALUE);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return None;
+        }
+        let mut entry = PROCESSENTRY32 {
+            dwSize: std::mem::size_of::<PROCESSENTRY32>() as u32,
+            ..Default::default()
+        };
+        let mut set = HashSet::new();
+        if Process32First(snapshot, &mut entry).is_ok() {
+            loop {
+                set.insert(entry.th32ProcessID);
+                if Process32Next(snapshot, &mut entry).is_err() {
+                    break;
+                }
+            }
+        }
+        let _ = CloseHandle(snapshot);
+        Some(set)
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct DiskInfo {
     pub name: String,
@@ -207,7 +237,7 @@ impl SysCollector {
         self.last_net_tx = total_tx;
 
         // Processes
-        let process_count = self.sys.processes().len();
+        let active_pids = get_active_pids();
         let num_cpus = self.sys.cpus().len() as f32;
         let cpus_divisor = if num_cpus > 0.0 { num_cpus } else { 1.0 };
 
@@ -217,6 +247,13 @@ impl SysCollector {
             .sys
             .processes()
             .iter()
+            .filter(|(pid, _)| {
+                if let Some(ref set) = active_pids {
+                    set.contains(&pid.as_u32())
+                } else {
+                    true
+                }
+            })
             .map(|(pid, proc)| {
                 let disk = proc.disk_usage();
                 let pid_u32 = pid.as_u32();
@@ -232,6 +269,8 @@ impl SysCollector {
                 }
             })
             .collect();
+
+        let process_count = processes.len();
 
         SystemStats {
             processes,
@@ -252,5 +291,17 @@ impl SysCollector {
             disks: disks_info,
             gpus: self.gpu.collect(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_active_pids() {
+        let pids = get_active_pids().expect("Failed to get active PIDs");
+        assert!(!pids.is_empty(), "PIDs list should not be empty");
+        println!("Found {} active processes via Toolhelp snapshot", pids.len());
     }
 }

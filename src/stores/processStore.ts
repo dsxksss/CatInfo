@@ -61,6 +61,7 @@ interface ProcessState {
   sortDir: SortDir;
   searchQuery: string;
   selectedPid: number | null;
+  killedPids: Set<number>;
   setProcesses: (procs: ProcessInfo[]) => void;
   setSort: (col: SortColumn) => void;
   setSearch: (q: string) => void;
@@ -69,6 +70,7 @@ interface ProcessState {
   loadIconForPid: (pid: number) => void;
   getCachedIcon: (pid: number) => string | undefined;
   fetchIconAsync: (pid: number) => Promise<string | undefined>;
+  killProcessId: (pid: number) => void;
 }
 
 export const useProcessStore = create<ProcessState>((set, get) => ({
@@ -77,15 +79,40 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
   sortDir: "desc",
   searchQuery: "",
   selectedPid: null,
+  killedPids: new Set<number>(),
   getCachedIcon: (pid) => iconCache.get(pid),
   fetchIconAsync: async (pid) => {
     return await loadIcon(pid);
   },
 
+  killProcessId: (pid) => {
+    set((state) => {
+      const next = new Set(state.killedPids);
+      next.add(pid);
+      return {
+        killedPids: next,
+        processes: state.processes.filter((p) => p.pid !== pid),
+      };
+    });
+    // Remove from killedPids after 4 seconds (plenty of time for OS termination and next polling cycle)
+    setTimeout(() => {
+      set((state) => {
+        const next = new Set(state.killedPids);
+        next.delete(pid);
+        return { killedPids: next };
+      });
+    }, 4000);
+  },
+
   setProcesses: (procs) => {
     const old = get().processes;
+    const killedPids = get().killedPids;
+
+    // Filter out any incoming processes that are in the killedPids set
+    const activeProcs = procs.filter((p) => !killedPids.has(p.pid));
+
     // Merge icons from old processes into new
-    const merged = procs.map((p) => {
+    const merged = activeProcs.map((p) => {
       if (p.icon) return p;
       const oldProc = old.find((o) => o.pid === p.pid);
       return { ...p, icon: oldProc?.icon };

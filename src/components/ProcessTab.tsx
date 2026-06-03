@@ -100,6 +100,7 @@ export default function ProcessTab({
   const sortColumn = useProcessStore((s) => s.sortColumn);
   const sortDir = useProcessStore((s) => s.sortDir);
   const setSort = useProcessStore((s) => s.setSort);
+  const killProcessId = useProcessStore((s) => s.killProcessId);
   
   // Collapsible section toggles
   const [systemExpanded, setSystemExpanded] = useState(true);
@@ -213,6 +214,7 @@ export default function ProcessTab({
       await primary();
       successToast(pid, name);
       clearSelectionIf(pid);
+      killProcessId(pid); // Immediately hide process in UI to prevent lag/flicker
       return;
     } catch (err) {
       if (!isAccessDenied(err)) {
@@ -231,6 +233,7 @@ export default function ProcessTab({
       await onKillProcessElevated(pid);
       successToast(pid, name);
       clearSelectionIf(pid);
+      killProcessId(pid); // Immediately hide process in UI to prevent lag/flicker
     } catch (err) {
       addToast(
         lang === 'zh'

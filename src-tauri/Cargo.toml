@@ -1,6 +1,6 @@
 [package]
 name = "catinfo"
-version = "1.2.0"
+version = "1.2.1"
 description = "CatInfo"
 authors = ["you"]
 edition = "2021"

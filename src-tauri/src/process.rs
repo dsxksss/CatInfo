@@ -128,7 +128,7 @@ pub fn get_process_icon(pid: u32) -> Result<String, String> {
         use windows::Win32::UI::Shell::{SHGetFileInfoW, SHGFI_ICON, SHGFI_SMALLICON, SHFILEINFOW};
         use windows::Win32::Graphics::Gdi::{
             CreateCompatibleDC, DeleteDC, CreateCompatibleBitmap,
-            SelectObject, DeleteObject, GetDIBits, GetDC,
+            SelectObject, DeleteObject, GetDIBits, GetDC, ReleaseDC,
             BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, BI_RGB,
         };
         use windows::Win32::UI::WindowsAndMessaging::DrawIconEx;
@@ -195,6 +195,7 @@ pub fn get_process_icon(pid: u32) -> Result<String, String> {
         SelectObject(mem_dc, old_bmp);
         let _ = DeleteObject(bitmap.into());
         let _ = DeleteDC(mem_dc);
+        let _ = ReleaseDC(None, screen_dc);
         use windows::Win32::UI::WindowsAndMessaging::DestroyIcon;
         let _ = DestroyIcon(info.hIcon);
 
