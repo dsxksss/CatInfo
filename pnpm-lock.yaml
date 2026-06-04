@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  liveline:
+    hash: 64eb8b7baf7c8cfd7b84037ae3ed4f65a31b4a5c3664b2d2a79eba282d976f46
+    path: patches/liveline.patch
+
 importers:
 
   .:
@@ -35,6 +40,9 @@ importers:
       framer-motion:
         specifier: ^12.40.0
         version: 12.40.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      liveline:
+        specifier: ^0.0.7
+        version: 0.0.7(patch_hash=64eb8b7baf7c8cfd7b84037ae3ed4f65a31b4a5c3664b2d2a79eba282d976f46)(react@19.2.6)
       lucide-react:
         specifier: ^1.17.0
         version: 1.17.0(react@19.2.6)
@@ -1083,6 +1091,12 @@ packages:
   lightningcss@1.32.0:
     resolution: {integrity: sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ==}
     engines: {node: '>= 12.0.0'}
+
+  liveline@0.0.7:
+    resolution: {integrity: sha512-S1Weo1kmefiOCNaW/WFXErqJXlV8A/ldIkIthaOeT57I2ZhqhKLKQDJ1wfabtMSK9vJeU8PeMNHd8Sr8TLByWQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: '>=18'
 
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
@@ -2183,6 +2197,10 @@ snapshots:
       lightningcss-linux-x64-musl: 1.32.0
       lightningcss-win32-arm64-msvc: 1.32.0
       lightningcss-win32-x64-msvc: 1.32.0
+
+  liveline@0.0.7(patch_hash=64eb8b7baf7c8cfd7b84037ae3ed4f65a31b4a5c3664b2d2a79eba282d976f46)(react@19.2.6):
+    dependencies:
+      react: 19.2.6
 
   loose-envify@1.4.0:
     dependencies:

@@ -225,6 +225,7 @@ export default function DashboardTab({
               fillColorStart="rgba(147, 83, 211, 0.18)"
               fillColorEnd="rgba(147, 83, 211, 0.0)"
               gridLines={false}
+              isMini={true}
             />
           </div>
         </div>

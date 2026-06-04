@@ -103,6 +103,8 @@ export default function PerformanceTab({
               fillColorStart="rgba(0, 111, 238, 0.1)"
               fillColorEnd="transparent"
               gridLines={false}
+              isMini={true}
+              pollingInterval={pollingInterval}
             />
           </div>
         </button>
@@ -141,6 +143,8 @@ export default function PerformanceTab({
               fillColorStart="rgba(23, 201, 100, 0.1)"
               fillColorEnd="transparent"
               gridLines={false}
+              isMini={true}
+              pollingInterval={pollingInterval}
             />
           </div>
         </button>
@@ -178,6 +182,8 @@ export default function PerformanceTab({
               fillColorStart="rgba(245, 165, 36, 0.1)"
               fillColorEnd="transparent"
               gridLines={false}
+              isMini={true}
+              pollingInterval={pollingInterval}
             />
           </div>
         </button>
@@ -214,6 +220,8 @@ export default function PerformanceTab({
               fillColorStart="rgba(0, 111, 238, 0.1)"
               fillColorEnd="transparent"
               gridLines={false}
+              isMini={true}
+              pollingInterval={pollingInterval}
             />
           </div>
         </button>
@@ -250,6 +258,8 @@ export default function PerformanceTab({
               fillColorStart="rgba(147, 83, 211, 0.1)"
               fillColorEnd="transparent"
               gridLines={false}
+              isMini={true}
+              pollingInterval={pollingInterval}
             />
           </div>
         </button>
@@ -297,6 +307,8 @@ export default function PerformanceTab({
                 fillColorStart="rgba(0, 111, 238, 0.15)"
                 fillColorEnd="rgba(0, 111, 238, 0.0)"
                 unit="%"
+                isMini={false}
+                pollingInterval={pollingInterval}
               />
             )}
             {activeMetricTab === 'memory' && (
@@ -307,6 +319,8 @@ export default function PerformanceTab({
                 fillColorStart="rgba(23, 201, 100, 0.15)"
                 fillColorEnd="rgba(23, 201, 100, 0.0)"
                 unit="%"
+                isMini={false}
+                pollingInterval={pollingInterval}
               />
             )}
             {activeMetricTab === 'disk' && (
@@ -317,6 +331,8 @@ export default function PerformanceTab({
                 fillColorStart="rgba(245, 165, 36, 0.15)"
                 fillColorEnd="rgba(245, 165, 36, 0.0)"
                 unit=" MB/s"
+                isMini={false}
+                pollingInterval={pollingInterval}
               />
             )}
             {activeMetricTab === 'network' && (
@@ -327,6 +343,8 @@ export default function PerformanceTab({
                 fillColorStart="rgba(0, 111, 238, 0.15)"
                 fillColorEnd="rgba(0, 111, 238, 0.0)"
                 unit=" Kbps"
+                isMini={false}
+                pollingInterval={pollingInterval}
               />
             )}
             {activeMetricTab === 'gpu' && (
@@ -337,6 +355,8 @@ export default function PerformanceTab({
                 fillColorStart="rgba(147, 83, 211, 0.15)"
                 fillColorEnd="rgba(147, 83, 211, 0.0)"
                 unit="%"
+                isMini={false}
+                pollingInterval={pollingInterval}
               />
             )}
           </div>

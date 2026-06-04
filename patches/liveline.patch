@@ -1,0 +1,82 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..a6948f028e3e39f329dd08e8eacf6459df04380e 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -909,8 +909,8 @@ function drawTimeAxis(ctx, layout, palette, windowSecs, targetWindowSecs, format
+ }
+ 
+ // src/draw/orderbook.ts
+-var GREEN = [34, 197, 94];
+-var RED = [239, 68, 68];
++var GREEN = [239, 68, 68];
++var RED = [34, 197, 94];
+ function createOrderbookState() {
+   return {
+     labels: [],
+@@ -1116,10 +1116,10 @@ function drawParticles(ctx, state, dt) {
+ }
+ 
+ // src/draw/candlestick.ts
+-var BULL = "#22c55e";
+-var BEAR = "#ef4444";
+-var BULL_RGB = [34, 197, 94];
+-var BEAR_RGB = [239, 68, 68];
++var BULL = "#ef4444";
++var BEAR = "#22c55e";
++var BULL_RGB = [239, 68, 68];
++var BEAR_RGB = [34, 197, 94];
+ function blendColor2(t) {
+   const r = Math.round(BEAR_RGB[0] + (BULL_RGB[0] - BEAR_RGB[0]) * t);
+   const g = Math.round(BEAR_RGB[1] + (BULL_RGB[1] - BEAR_RGB[1]) * t);
+@@ -1988,8 +1988,8 @@ var WINDOW_BUFFER = 0.05;
+ var WINDOW_BUFFER_NO_BADGE = 0.015;
+ var VALUE_SNAP_THRESHOLD = 1e-3;
+ var ADAPTIVE_SPEED_BOOST = 0.2;
+-var MOMENTUM_GREEN = [34, 197, 94];
+-var MOMENTUM_RED = [239, 68, 68];
++var MOMENTUM_GREEN = [239, 68, 68];
++var MOMENTUM_RED = [34, 197, 94];
+ var CHART_REVEAL_SPEED = 0.14;
+ var CHART_REVEAL_SPEED_FWD = 0.09;
+ var PAUSE_PROGRESS_SPEED = 0.12;
+diff --git a/dist/index.js b/dist/index.js
+index fd0506272e9a54432a0882c3a389ee74302e4718..59989371bf57a8ced29b068b8160862c3606fff6 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -882,8 +882,8 @@ function drawTimeAxis(ctx, layout, palette, windowSecs, targetWindowSecs, format
+ }
+ 
+ // src/draw/orderbook.ts
+-var GREEN = [34, 197, 94];
+-var RED = [239, 68, 68];
++var GREEN = [239, 68, 68];
++var RED = [34, 197, 94];
+ function createOrderbookState() {
+   return {
+     labels: [],
+@@ -1089,10 +1089,10 @@ function drawParticles(ctx, state, dt) {
+ }
+ 
+ // src/draw/candlestick.ts
+-var BULL = "#22c55e";
+-var BEAR = "#ef4444";
+-var BULL_RGB = [34, 197, 94];
+-var BEAR_RGB = [239, 68, 68];
++var BULL = "#ef4444";
++var BEAR = "#22c55e";
++var BULL_RGB = [239, 68, 68];
++var BEAR_RGB = [34, 197, 94];
+ function blendColor2(t) {
+   const r = Math.round(BEAR_RGB[0] + (BULL_RGB[0] - BEAR_RGB[0]) * t);
+   const g = Math.round(BEAR_RGB[1] + (BULL_RGB[1] - BEAR_RGB[1]) * t);
+@@ -1961,8 +1961,8 @@ var WINDOW_BUFFER = 0.05;
+ var WINDOW_BUFFER_NO_BADGE = 0.015;
+ var VALUE_SNAP_THRESHOLD = 1e-3;
+ var ADAPTIVE_SPEED_BOOST = 0.2;
+-var MOMENTUM_GREEN = [34, 197, 94];
+-var MOMENTUM_RED = [239, 68, 68];
++var MOMENTUM_GREEN = [239, 68, 68];
++var MOMENTUM_RED = [34, 197, 94];
+ var CHART_REVEAL_SPEED = 0.14;
+ var CHART_REVEAL_SPEED_FWD = 0.09;
+ var PAUSE_PROGRESS_SPEED = 0.12;
