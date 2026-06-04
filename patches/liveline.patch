@@ -1,5 +1,5 @@
 diff --git a/dist/index.cjs b/dist/index.cjs
-index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..a6948f028e3e39f329dd08e8eacf6459df04380e 100644
+index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..d2d50f55663bbd40c030847406722f76d68a7f75 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
 @@ -909,8 +909,8 @@ function drawTimeAxis(ctx, layout, palette, windowSecs, targetWindowSecs, format
@@ -28,19 +28,39 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..a6948f028e3e39f329dd08e8eacf6459
  function blendColor2(t) {
    const r = Math.round(BEAR_RGB[0] + (BULL_RGB[0] - BEAR_RGB[0]) * t);
    const g = Math.round(BEAR_RGB[1] + (BULL_RGB[1] - BEAR_RGB[1]) * t);
-@@ -1988,8 +1988,8 @@ var WINDOW_BUFFER = 0.05;
- var WINDOW_BUFFER_NO_BADGE = 0.015;
- var VALUE_SNAP_THRESHOLD = 1e-3;
- var ADAPTIVE_SPEED_BOOST = 0.2;
--var MOMENTUM_GREEN = [34, 197, 94];
--var MOMENTUM_RED = [239, 68, 68];
-+var MOMENTUM_GREEN = [239, 68, 68];
-+var MOMENTUM_RED = [34, 197, 94];
- var CHART_REVEAL_SPEED = 0.14;
- var CHART_REVEAL_SPEED_FWD = 0.09;
- var PAUSE_PROGRESS_SPEED = 0.12;
+@@ -2193,14 +2193,22 @@ function updateBadgeDOM(badge, cfg, smoothValue, layout, momentum, badgeY, badge
+     if (!cfg.showMomentum) {
+       fillColor = cfg.palette.line;
+     } else {
+-      const target = momentum === "up" ? 1 : momentum === "down" ? 0 : bs.green;
+-      bs.green = noMotion ? target : lerp(bs.green, target, MOMENTUM_COLOR_LERP, dt);
+-      if (bs.green > 0.99) bs.green = 1;
+-      if (bs.green < 0.01) bs.green = 0;
+-      const g = bs.green;
+-      const rr = Math.round(MOMENTUM_RED[0] + (MOMENTUM_GREEN[0] - MOMENTUM_RED[0]) * g);
+-      const gg = Math.round(MOMENTUM_RED[1] + (MOMENTUM_GREEN[1] - MOMENTUM_RED[1]) * g);
+-      const bb = Math.round(MOMENTUM_RED[2] + (MOMENTUM_GREEN[2] - MOMENTUM_RED[2]) * g);
++      const pct = Math.max(0, Math.min(1, (smoothValue - layout.minVal) / (layout.valRange || 1)));
++      const GREEN_COLOR = [34, 197, 94];
++      const AMBER_COLOR = [245, 165, 36];
++      const RED_COLOR = [239, 68, 68];
++      let rr, gg, bb;
++      if (pct < 0.5) {
++        const t = pct / 0.5;
++        rr = Math.round(GREEN_COLOR[0] + (AMBER_COLOR[0] - GREEN_COLOR[0]) * t);
++        gg = Math.round(GREEN_COLOR[1] + (AMBER_COLOR[1] - GREEN_COLOR[1]) * t);
++        bb = Math.round(GREEN_COLOR[2] + (AMBER_COLOR[2] - GREEN_COLOR[2]) * t);
++      } else {
++        const t = (pct - 0.5) / 0.5;
++        rr = Math.round(AMBER_COLOR[0] + (RED_COLOR[0] - AMBER_COLOR[0]) * t);
++        gg = Math.round(AMBER_COLOR[1] + (RED_COLOR[1] - AMBER_COLOR[1]) * t);
++        bb = Math.round(AMBER_COLOR[2] + (RED_COLOR[2] - AMBER_COLOR[2]) * t);
++      }
+       fillColor = `rgb(${rr},${gg},${bb})`;
+     }
+     badge.path.setAttribute("fill", fillColor);
 diff --git a/dist/index.js b/dist/index.js
-index fd0506272e9a54432a0882c3a389ee74302e4718..59989371bf57a8ced29b068b8160862c3606fff6 100644
+index fd0506272e9a54432a0882c3a389ee74302e4718..2ebc60216d69608dd8097e4e7865dc70fa2df4c0 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -882,8 +882,8 @@ function drawTimeAxis(ctx, layout, palette, windowSecs, targetWindowSecs, format
@@ -69,14 +89,34 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..59989371bf57a8ced29b068b8160862c
  function blendColor2(t) {
    const r = Math.round(BEAR_RGB[0] + (BULL_RGB[0] - BEAR_RGB[0]) * t);
    const g = Math.round(BEAR_RGB[1] + (BULL_RGB[1] - BEAR_RGB[1]) * t);
-@@ -1961,8 +1961,8 @@ var WINDOW_BUFFER = 0.05;
- var WINDOW_BUFFER_NO_BADGE = 0.015;
- var VALUE_SNAP_THRESHOLD = 1e-3;
- var ADAPTIVE_SPEED_BOOST = 0.2;
--var MOMENTUM_GREEN = [34, 197, 94];
--var MOMENTUM_RED = [239, 68, 68];
-+var MOMENTUM_GREEN = [239, 68, 68];
-+var MOMENTUM_RED = [34, 197, 94];
- var CHART_REVEAL_SPEED = 0.14;
- var CHART_REVEAL_SPEED_FWD = 0.09;
- var PAUSE_PROGRESS_SPEED = 0.12;
+@@ -2166,14 +2166,22 @@ function updateBadgeDOM(badge, cfg, smoothValue, layout, momentum, badgeY, badge
+     if (!cfg.showMomentum) {
+       fillColor = cfg.palette.line;
+     } else {
+-      const target = momentum === "up" ? 1 : momentum === "down" ? 0 : bs.green;
+-      bs.green = noMotion ? target : lerp(bs.green, target, MOMENTUM_COLOR_LERP, dt);
+-      if (bs.green > 0.99) bs.green = 1;
+-      if (bs.green < 0.01) bs.green = 0;
+-      const g = bs.green;
+-      const rr = Math.round(MOMENTUM_RED[0] + (MOMENTUM_GREEN[0] - MOMENTUM_RED[0]) * g);
+-      const gg = Math.round(MOMENTUM_RED[1] + (MOMENTUM_GREEN[1] - MOMENTUM_RED[1]) * g);
+-      const bb = Math.round(MOMENTUM_RED[2] + (MOMENTUM_GREEN[2] - MOMENTUM_RED[2]) * g);
++      const pct = Math.max(0, Math.min(1, (smoothValue - layout.minVal) / (layout.valRange || 1)));
++      const GREEN_COLOR = [34, 197, 94];
++      const AMBER_COLOR = [245, 165, 36];
++      const RED_COLOR = [239, 68, 68];
++      let rr, gg, bb;
++      if (pct < 0.5) {
++        const t = pct / 0.5;
++        rr = Math.round(GREEN_COLOR[0] + (AMBER_COLOR[0] - GREEN_COLOR[0]) * t);
++        gg = Math.round(GREEN_COLOR[1] + (AMBER_COLOR[1] - GREEN_COLOR[1]) * t);
++        bb = Math.round(GREEN_COLOR[2] + (AMBER_COLOR[2] - GREEN_COLOR[2]) * t);
++      } else {
++        const t = (pct - 0.5) / 0.5;
++        rr = Math.round(AMBER_COLOR[0] + (RED_COLOR[0] - AMBER_COLOR[0]) * t);
++        gg = Math.round(AMBER_COLOR[1] + (RED_COLOR[1] - AMBER_COLOR[1]) * t);
++        bb = Math.round(AMBER_COLOR[2] + (RED_COLOR[2] - AMBER_COLOR[2]) * t);
++      }
+       fillColor = `rgb(${rr},${gg},${bb})`;
+     }
+     badge.path.setAttribute("fill", fillColor);
