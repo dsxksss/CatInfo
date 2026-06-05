@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Activity, Terminal, Network, Settings as SettingsIcon, 
-  RefreshCw, Sun, Moon, LayoutDashboard,
+  Sun, Moon, LayoutDashboard,
   Minus, Square, X
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
@@ -284,9 +284,6 @@ export default function App() {
 
 
 
-  const handleResetProcesses = () => {
-    console.log("Telemetry feed synchronized manually.");
-  };
 
   const uptimeDays = Math.floor((currentStats?.uptime_secs || 388000) / 86400);
   const uptimeHours = Math.floor(((currentStats?.uptime_secs || 388000) % 86400) / 3600);
@@ -434,16 +431,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick appearance or reset action node in sidebar at bottom */}
-            <div className="p-4 border-t border-[#11141c]/50">
-              <button
-                onClick={handleResetProcesses}
-                className="w-full px-3 py-2 hover:bg-zinc-950/50 rounded-xl text-left text-zinc-500 hover:text-zinc-300 font-medium transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <RefreshCw size={12} className="text-zinc-500" />
-                {t.resetTelemetry}
-              </button>
-            </div>
 
           </div>
 
@@ -533,7 +520,10 @@ export default function App() {
           </div>
 
           {/* MAIN PAGE BODY (Interactive viewport) */}
-          <div className="flex-grow p-4 md:p-8 overflow-y-auto" id="dashboard-viewport">
+          {/* overflow-anchor:none — the process list re-sorts every tick; without this,
+              the browser's scroll anchoring snaps back to the top when the anchored row
+              gets reordered/removed while scrolled to the bottom. */}
+          <div className="flex-grow p-4 md:p-8 overflow-y-auto [overflow-anchor:none]" id="dashboard-viewport">
             
             {/* Render view contents */}
             <AnimatePresence mode="wait">

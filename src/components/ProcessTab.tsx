@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, X, ChevronRight, ChevronDown,
-  Terminal, Shield, FileCode, Cpu, Database,
+  Search, X, ChevronDown,
+  Terminal, FileCode, Cpu, Database,
   Trash2, ShieldAlert, HelpCircle, AppWindow, Cog
 } from 'lucide-react';
 import { translations } from '../lib/translations';
@@ -92,35 +92,17 @@ export default function ProcessTab({
   const [selectedProcess, setSelectedProcess] = useState<ProcessItem | null>(null);
   const [pendingKill, setPendingKill] = useState<{ pid: number; name: string; isTree: boolean } | null>(null);
   
-  // View mode switcher: tree lists vs grid table
-  const [viewMode, setViewMode] = useState<'tree' | 'grid'>('grid');
-
-
   // Pull sort parameters from process store
   const sortColumn = useProcessStore((s) => s.sortColumn);
   const sortDir = useProcessStore((s) => s.sortDir);
   const setSort = useProcessStore((s) => s.setSort);
   const killProcessId = useProcessStore((s) => s.killProcessId);
   
-  // Collapsible section toggles
-  const [systemExpanded, setSystemExpanded] = useState(true);
-  const [appsExpanded, setAppsExpanded] = useState(true);
-  
-  // Progressive rendering limits to prevent window thrashing
-  const [systemLimit, setSystemLimit] = useState(40);
-  const [appsLimit, setAppsLimit] = useState(40);
+  // Progressive rendering limit to prevent window thrashing
   const [gridLimit, setGridLimit] = useState(50);
-  
+
   useEffect(() => {
-    if (searchQuery.trim()) {
-      setSystemLimit(120);
-      setAppsLimit(120);
-      setGridLimit(120);
-    } else {
-      setSystemLimit(40);
-      setAppsLimit(40);
-      setGridLimit(50);
-    }
+    setGridLimit(searchQuery.trim() ? 120 : 50);
   }, [searchQuery]);
 
 
@@ -284,23 +266,6 @@ export default function ProcessTab({
     });
   }, [mappedProcesses, searchQuery]);
 
-  // Split into System vs User application arrays and sort by resource footprint
-  const { systemProcs, userProcs } = useMemo(() => {
-    const system = filteredProcesses.filter(p => p.user === 'SYSTEM')
-      .sort((a, b) => b.cpu - a.cpu || b.memory - a.memory);
-    const user = filteredProcesses.filter(p => p.user !== 'SYSTEM')
-      .sort((a, b) => b.cpu - a.cpu || b.memory - a.memory);
-    return { systemProcs: system, userProcs: user };
-  }, [filteredProcesses]);
-
-  const visibleSystemProcs = useMemo(() => {
-    return systemProcs.slice(0, systemLimit);
-  }, [systemProcs, systemLimit]);
-
-  const visibleUserProcs = useMemo(() => {
-    return userProcs.slice(0, appsLimit);
-  }, [userProcs, appsLimit]);
-
   // Sort and slice grid array based on active performance column selected by user
   const sortedGridProcesses = useMemo(() => {
     const sorted = [...filteredProcesses].sort((a, b) => {
@@ -384,35 +349,9 @@ export default function ProcessTab({
               <span className="uppercase text-[11px] font-bold text-zinc-400 tracking-wider font-mono-premium">
                 {lang === 'zh' ? '任务管理器' : 'Interactive Schedulers'}
               </span>
-              <span className="text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-500 font-semibold px-2 py-0.5 rounded-md font-mono-premium">
+              <span className="text-[10px] bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] font-semibold px-2 py-0.5 rounded-md font-mono-premium">
                 {mappedProcesses.length} {lang === 'zh' ? '活动进程数' : 'Active Processes'}
               </span>
-              
-              {/* View Selector Toggle buttons */}
-              <div className="flex bg-zinc-950 border border-[#141822] rounded-lg p-0.5 text-[10px] font-mono-premium font-semibold ml-2 select-none">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('tree')}
-                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer outline-none ${
-                    viewMode === 'tree' 
-                      ? 'bg-zinc-800 text-white font-bold' 
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  {lang === 'zh' ? '树状视图' : 'Grouped Tree'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer outline-none ${
-                    viewMode === 'grid' 
-                      ? 'bg-zinc-800 text-white font-bold' 
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  {lang === 'zh' ? '列表视图' : 'Performance Grid'}
-                </button>
-              </div>
             </div>
 
             {/* Quick action bar */}
@@ -435,142 +374,8 @@ export default function ProcessTab({
             </div>
           </div>
 
-          {viewMode === 'tree' && (
-            <>
-              {/* Group 1 Section: System Processes (Collapsible exactly like file tree directories) */}
-          <div className="bg-zinc-950/20 border border-[#141822]/85 rounded-2xl overflow-hidden">
-            
-            {/* Tree Folder Header Node */}
-            <div className="flex items-center justify-between p-3 bg-[#090a0e]/60 border-b border-[#11141c]">
-              <button
-                onClick={() => setSystemExpanded(!systemExpanded)}
-                className="flex items-center gap-2 text-xs font-bold text-white hover:text-[#006fee] transition-colors text-left cursor-pointer outline-none"
-              >
-                {systemExpanded ? <ChevronDown size={14} className="text-zinc-500" /> : <ChevronRight size={14} className="text-zinc-500" />}
-                <Shield size={13} className={`shrink-0 ${systemExpanded ? 'text-amber-500' : 'text-zinc-500'}`} />
-                <span>{lang === 'zh' ? '系统进程 (Ring 0)' : 'System Privileged Space (Ring 0)'}</span>
-                <span className="text-[10px] text-zinc-500 font-mono-premium ml-1">({systemProcs.length})</span>
-              </button>
-
-              <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider font-mono-premium">{t.protectedKernel}</span>
-            </div>
-
-            <AnimatePresence initial={false}>
-              {systemExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-2 space-y-1">
-                    {systemProcs.length === 0 ? (
-                      <div className="text-center py-6 text-zinc-500 text-xs font-mono-premium">
-                        {t.noSysProcesses}
-                      </div>
-                    ) : (
-                      visibleSystemProcs.map((p) => {
-                        const isSelected = selectedProcess?.id === p.id;
-                        return (
-                          <ProcessRow
-                            key={p.id}
-                            p={p}
-                            isSelected={isSelected}
-                            onSelect={() => setSelectedProcess(p)}
-                            onKill={handleForceKill}
-                            getStatusColor={getStatusColor}
-                            lang={lang}
-                          />
-                        );
-                      })
-                    )}
-                    {systemProcs.length > systemLimit && (
-                      <button
-                        onClick={() => setSystemLimit(prev => prev + 50)}
-                        className="w-full py-2.5 mt-1 border border-dashed border-zinc-800/40 hover:border-zinc-700/60 rounded-xl text-center text-zinc-500 hover:text-zinc-300 font-mono-premium text-[10px] cursor-pointer transition-all hover:bg-zinc-950/20 active:scale-[0.99] select-none"
-                      >
-                        {lang === 'zh' 
-                          ? `显示更多系统进程 (+${systemProcs.length - systemLimit} 个)...`
-                          : `Show More Kernel Processes (+${systemProcs.length - systemLimit} more)...`}
-                      </button>
-                    )}
-
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Group 2 Section: User Applications (Collapsible exactly like file tree directories) */}
-          <div className="bg-zinc-950/20 border border-[#141822]/85 rounded-2xl overflow-hidden">
-            
-            {/* Tree Folder Header Node */}
-            <div className="flex items-center justify-between p-3 bg-[#090a0e]/60 border-b border-[#11141c]">
-              <button
-                onClick={() => setAppsExpanded(!appsExpanded)}
-                className="flex items-center gap-2 text-xs font-bold text-white hover:text-[#006fee] transition-colors text-left cursor-pointer outline-none"
-              >
-                {appsExpanded ? <ChevronDown size={14} className="text-zinc-500" /> : <ChevronRight size={14} className="text-zinc-500" />}
-                <Terminal size={13} className={`shrink-0 ${appsExpanded ? 'text-blue-500' : 'text-zinc-500'}`} />
-                <span>{lang === 'zh' ? '用户进程 (Ring 3)' : 'User Application Space (Ring 3)'}</span>
-                <span className="text-[10px] text-zinc-500 font-mono-premium ml-1">({userProcs.length})</span>
-              </button>
-
-              <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider font-mono-premium">{t.interactiveSpace}</span>
-            </div>
-
-            <AnimatePresence initial={false}>
-              {appsExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-2 space-y-1">
-                    {userProcs.length === 0 ? (
-                      <div className="text-center py-6 text-zinc-500 text-xs font-mono-premium">
-                        {t.noUserProcesses}
-                      </div>
-                    ) : (
-                      visibleUserProcs.map((p) => {
-                        const isSelected = selectedProcess?.id === p.id;
-                        return (
-                          <ProcessRow
-                            key={p.id}
-                            p={p}
-                            isSelected={isSelected}
-                            onSelect={() => setSelectedProcess(p)}
-                            onKill={handleForceKill}
-                            getStatusColor={getStatusColor}
-                            lang={lang}
-                          />
-                        );
-                      })
-                    )}
-                    {userProcs.length > appsLimit && (
-                      <button
-                        onClick={() => setAppsLimit(prev => prev + 50)}
-                        className="w-full py-2.5 mt-1 border border-dashed border-zinc-800/40 hover:border-zinc-700/60 rounded-xl text-center text-zinc-500 hover:text-zinc-300 font-mono-premium text-[10px] cursor-pointer transition-all hover:bg-zinc-950/20 active:scale-[0.99] select-none"
-                      >
-                        {lang === 'zh' 
-                          ? `显示更多用户进程 (+${userProcs.length - appsLimit} 个)...`
-                          : `Show More User Applications (+${userProcs.length - appsLimit} more)...`}
-                      </button>
-                    )}
-
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </>
-      )}
-
-      {/* Group 3 Section: two separate tables (Apps / Background), shared filter */}
-      {viewMode === 'grid' && filteredProcesses.length > 0 && (
+          {/* Two separate tables (Apps / Background), shared filter */}
+      {filteredProcesses.length > 0 && (
         <div className="flex flex-col gap-5">
           {gridApps.length > 0 && (
             <GridTable
@@ -882,111 +687,6 @@ export default function ProcessTab({
   );
 }
 
-interface ProcessRowProps {
-  p: ProcessItem;
-  isSelected: boolean;
-  onSelect: () => void;
-  onKill: (pid: number, name: string) => void;
-  getStatusColor: (status: ProcessItem['status']) => string;
-  lang?: 'en' | 'zh';
-}
-
-function ProcessRow({
-  p,
-  isSelected,
-  onSelect,
-  onKill,
-  getStatusColor,
-  lang,
-}: ProcessRowProps) {
-  const getCachedIcon = useProcessStore((s) => s.getCachedIcon);
-  const fetchIconAsync = useProcessStore((s) => s.fetchIconAsync);
-
-  const [icon, setIcon] = useState<string | undefined>(() => {
-    return p.icon || getCachedIcon(p.pid);
-  });
-
-  // Automatically trigger icon loader locally to prevent Zustand thrashing
-  useEffect(() => {
-    if (icon || p.pid <= 0) return;
-    let active = true;
-    let attempts = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const tryLoad = async () => {
-      const base64 = await fetchIconAsync(p.pid);
-      if (!active) return;
-      if (base64) {
-        setIcon(base64);
-      } else if (++attempts < 4) {
-        // Retry transient failures (process briefly inaccessible, etc.)
-        timer = setTimeout(tryLoad, 1500);
-      }
-    };
-    tryLoad();
-    return () => {
-      active = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [p.pid, icon, fetchIconAsync]);
-
-  return (
-    <div
-      onClick={onSelect}
-      className={`group relative flex items-center justify-between px-3 py-2 rounded-xl transition-all cursor-pointer border border-transparent select-none ${
-        isSelected ? 'bg-[#151922] border-[#006fee]/20 text-white shadow-sm' : 'hover:bg-zinc-900/50'
-      }`}
-    >
-      <div className="flex items-center gap-2.5 min-w-0">
-        {/* Indented indicator dot for child items in the tree representation */}
-        <div className="w-1.5 h-1.5 rounded-full bg-zinc-800 shrink-0 ml-1.5" />
-        
-        {/* Executable icon */}
-        <div className="w-6 h-6 rounded-md bg-zinc-950/60 border border-zinc-800/80 flex items-center justify-center shrink-0 overflow-hidden">
-          {p.icon ? (
-            <img src={p.icon} alt="" className="w-3.5 h-3.5 object-contain" />
-          ) : (
-            <FileCode size={11} className="text-zinc-500 animate-pulse" />
-          )}
-        </div>
-
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-zinc-300 truncate max-w-[150px]">{p.name}</span>
-            <span className="text-[9px] text-zinc-500 font-mono">#{p.pid}</span>
-          </div>
-          <div className="flex items-center gap-2 text-[9px] text-zinc-500 font-mono-premium mt-0.5">
-            <span>{p.user} • {lang === 'zh' ? `${p.priority === 'Low' ? '低' : p.priority === 'Normal' ? '正常' : p.priority === 'High' ? '高' : '实时'} 优先级` : `${p.priority} priority`}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3.5 shrink-0">
-        {/* Visual inline metrics */}
-        <div className="text-right text-[10px] font-mono-premium text-zinc-500 hidden sm:block">
-          <span className={p.cpu > 25 ? 'text-red-400 font-bold' : 'text-zinc-400'}>{p.cpu.toFixed(1)}%</span>
-          <span className="mx-1 text-zinc-800">|</span>
-          <span>{p.memory >= 1024 ? `${(p.memory / 1024).toFixed(1)}G` : `${p.memory.toFixed(0)}M`}</span>
-        </div>
-
-        {/* Small status bullet */}
-        <span className={`w-1.5 h-1.5 rounded-full ${getStatusColor(p.status)}`} />
-
-        {/* Hover kill trigger similar to folder deletion controls */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onKill(p.pid, p.name);
-          }}
-          className="opacity-0 group-hover:opacity-100 p-0.5 bg-[#f31260]/10 hover:bg-[#f31260] text-[#f31260] hover:text-white rounded transition-all duration-150 cursor-pointer"
-          title="SIGKILL"
-        >
-          <X size={10} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 interface GridRowProps {
   p: ProcessItem;
   isSelected: boolean;
@@ -1138,28 +838,46 @@ function GridTable({
   const arrow = (col: SortCol) =>
     sortColumn === col ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
 
-  const headerBar =
-    accent === 'app'
-      ? 'bg-blue-500/[0.07] border-blue-500/20'
-      : 'bg-zinc-500/[0.06] border-zinc-700/40';
   const countPill =
     accent === 'app'
-      ? 'text-[#006fee] bg-blue-500/10 border-blue-500/20'
-      : 'text-zinc-300 bg-zinc-700/40 border-zinc-600/40';
+      ? 'text-[#006fee] bg-blue-500/15 border-blue-500/30'
+      : 'text-zinc-300 bg-zinc-500/20 border-zinc-500/40';
+
+  // Whole-table collapse so a category can be folded away when not needed.
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="bg-zinc-950/20 border border-[#141822]/85 rounded-2xl overflow-hidden">
-      {/* Category header bar */}
-      <div className={`flex items-center gap-2 px-5 py-2.5 border-b ${headerBar}`}>
+      {/* Category header bar — click to collapse/expand the whole table */}
+      <button
+        type="button"
+        onClick={() => setCollapsed((v) => !v)}
+        className={`w-full flex items-center gap-2.5 px-5 py-3 text-left cursor-pointer select-none outline-none transition-colors hover:bg-zinc-900/30 ${
+          collapsed ? '' : 'border-b border-[#141822]/85'
+        }`}
+      >
         {icon}
         <span className="text-sm font-bold tracking-wide text-zinc-100">{title}</span>
         <span className={`text-[10px] font-mono-premium font-bold px-2 py-0.5 rounded-full border leading-none ${countPill}`}>
           {count}
         </span>
-      </div>
+        <ChevronDown
+          size={16}
+          className={`ml-auto text-zinc-500 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
+        />
+      </button>
 
-      <div className="overflow-x-auto scrollbar-thin">
-        <table className="w-full text-left border-collapse text-xs select-none">
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left border-collapse text-xs select-none">
           <thead>
             <tr className="bg-[#090a0e]/60 border-b border-[#11141c] text-zinc-400 font-mono-premium uppercase text-[9px] tracking-wider">
               <th onClick={() => setSort('name')} className="p-3.5 pl-5 cursor-pointer hover:text-white transition-colors align-bottom">
@@ -1212,9 +930,12 @@ function GridTable({
             ))}
           </tbody>
         </table>
-      </div>
+            </div>
 
-      {footer && <div className="p-2 border-t border-[#11141c]/50">{footer}</div>}
+            {footer && <div className="p-2 border-t border-[#11141c]/50">{footer}</div>}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

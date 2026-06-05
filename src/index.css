@@ -112,13 +112,12 @@
   border: 1px solid rgba(16, 185, 129, 0.05);
 }
 
-/* CPU water-ball gauge percentage: white + dark shadow reads great over the dark
-   theme, but in light mode `.light .text-white` darkens it into the green water and
-   the dark shadow turns it muddy. Force a dark slate with a soft white halo so it
-   stays crisp over both the light upper area and the emerald water below. */
+/* CPU water-ball gauge percentage: white + dark shadow reads on the dark theme, but
+   in light mode that's harsh. Use a neutral dark gray with a soft white halo so it
+   stays legible over both the pale upper area and the emerald water below. */
 html.light .cpu-gauge-pct {
-  color: #0f2a1f !important;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.75) !important;
+  color: #3f3f46 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7) !important;
 }
 
 /* The active sidebar item sits on a green pill rendered as a sibling layer, so the
