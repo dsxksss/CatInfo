@@ -8,6 +8,15 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      // Two HTML entries: the main dashboard and the floating Dynamic Island.
+      input: {
+        main: "index.html",
+        island: "island.html",
+      },
+    },
+  },
   server: {
     port: 1420,
     strictPort: true,

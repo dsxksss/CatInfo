@@ -20,6 +20,21 @@
         "decorations": false,
         "center": true,
         "resizable": true
+      },
+      {
+        "label": "island",
+        "title": "Cat Island",
+        "url": "island.html",
+        "width": 440,
+        "height": 180,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "focus": false,
+        "visible": false
       }
     ],
     "security": {

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 
 // Telemetry custom hooks and stores
 import { useSystemStats } from './hooks/useSystemStats';
@@ -93,6 +94,37 @@ export default function App() {
     setConfirmKill(val);
     localStorage.setItem('wincat-confirm-kill', String(val));
   };
+
+  // Dynamic Island toggle — shows/hides the floating island window.
+  const [islandEnabled, setIslandEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('wincat-island-enabled') !== 'false';
+  });
+
+  const applyIslandVisibility = async (enabled: boolean) => {
+    try {
+      const island = await WebviewWindow.getByLabel('island');
+      if (!island) return;
+      if (enabled) {
+        await island.show();
+      } else {
+        await island.hide();
+      }
+    } catch (err) {
+      console.error('Failed to toggle island window:', err);
+    }
+  };
+
+  const handleSetIslandEnabled = (val: boolean) => {
+    setIslandEnabled(val);
+    localStorage.setItem('wincat-island-enabled', String(val));
+    applyIslandVisibility(val);
+  };
+
+  // Apply the saved island preference once on startup (the window defaults to visible).
+  useEffect(() => {
+    applyIslandVisibility(islandEnabled);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Synchronize polling interval with Rust backend collector thread
   useEffect(() => {
@@ -593,6 +625,8 @@ export default function App() {
                     lang={lang}
                     confirmKill={confirmKill}
                     setConfirmKill={handleSetConfirmKill}
+                    islandEnabled={islandEnabled}
+                    setIslandEnabled={handleSetIslandEnabled}
                   />
                 )}
 

@@ -1,4 +1,4 @@
-import { Sliders, Power, Shield } from 'lucide-react';
+import { Sliders, Power, Shield, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 
@@ -11,6 +11,8 @@ interface SettingsTabProps {
   lang?: 'en' | 'zh';
   confirmKill: boolean;
   setConfirmKill: (val: boolean) => void;
+  islandEnabled: boolean;
+  setIslandEnabled: (val: boolean) => void;
 }
 
 export default function SettingsTab({
@@ -22,6 +24,8 @@ export default function SettingsTab({
   lang = 'en',
   confirmKill,
   setConfirmKill,
+  islandEnabled,
+  setIslandEnabled,
 }: SettingsTabProps) {
   const [autostart, setAutostart] = useState(false);
   const [autostartBusy, setAutostartBusy] = useState(true);
@@ -59,7 +63,7 @@ export default function SettingsTab({
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto" id="settings-tab-layout">
-      
+
       {/* Settings Card */}
       <div className="card p-6 flex flex-col justify-between" id="telemetry-controls-box">
         <div className="space-y-6">
@@ -119,15 +123,13 @@ export default function SettingsTab({
                 aria-label={lang === 'zh' ? '开机自启' : 'Launch on Startup'}
                 disabled={autostartBusy}
                 onClick={toggleAutostart}
-                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  autostart ? 'bg-[#006fee]' : 'bg-zinc-700'
-                }`}
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${autostart ? 'bg-[#006fee]' : 'bg-zinc-700'
+                  }`}
                 id="autostart-toggle"
               >
                 <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                    autostart ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                  }`}
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${autostart ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`}
                 />
               </button>
             </div>
@@ -155,40 +157,56 @@ export default function SettingsTab({
                 aria-checked={confirmKill}
                 aria-label={lang === 'zh' ? '终止进程二次确认' : 'Confirm Before Killing'}
                 onClick={() => setConfirmKill(!confirmKill)}
-                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
-                  confirmKill ? 'bg-[#006fee]' : 'bg-zinc-700'
-                }`}
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${confirmKill ? 'bg-[#006fee]' : 'bg-zinc-700'
+                  }`}
                 id="confirm-kill-toggle"
               >
                 <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                    confirmKill ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                  }`}
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${confirmKill ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`}
                 />
               </button>
             </div>
           </div>
 
-          {/* Security settings display */}
-          <div className="space-y-3 pt-4 border-t border-zinc-900 text-xs">
-            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">{lang === 'zh' ? '系统防护状态' : 'System Security Flags'}</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-zinc-950/50 p-2.5 rounded border border-zinc-900/80 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-[10px] text-zinc-400 font-medium">Root Bridge SEC</span>
+          {/* Dynamic Island toggle */}
+          <div className="space-y-3 pt-4 border-t border-zinc-900">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-2.5">
+                <Sparkles size={16} className="text-[#006fee] mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs font-semibold text-zinc-300 block">
+                    {lang === 'zh' ? '桌面灵动岛' : 'Desktop Dynamic Island'}
+                  </span>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">
+                    {lang === 'zh'
+                      ? '在屏幕顶部显示悬浮的实时状态岛，移开会自动收起为小黑边'
+                      : 'Show a floating live-telemetry island at the top of the screen; it auto-hides to a sliver'}
+                  </p>
+                </div>
               </div>
-              <div className="bg-zinc-950/50 p-2.5 rounded border border-zinc-900/80 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-[10px] text-zinc-400 font-medium">Wincat Guard-OK</span>
-              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={islandEnabled}
+                aria-label={lang === 'zh' ? '桌面灵动岛' : 'Desktop Dynamic Island'}
+                onClick={() => setIslandEnabled(!islandEnabled)}
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${islandEnabled ? 'bg-[#006fee]' : 'bg-zinc-700'
+                  }`}
+                id="island-toggle"
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${islandEnabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`}
+                />
+              </button>
             </div>
           </div>
-
         </div>
 
         <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-850 text-xs text-zinc-500 leading-relaxed mt-6 font-medium">
           <span className="font-bold text-zinc-300 block mb-1">{lang === 'zh' ? '资源自适应保护' : 'Adaptive Performance Guard'}</span>
-          {lang === 'zh' 
+          {lang === 'zh'
             ? '当 CPU 负载超过 90% 时，系统会自动调低数据刷新频率，以确保界面运行流畅、不卡顿。'
             : 'When processor load metrics peak above 90%, driver polling frequency automatically clamps safeguards to conserve physical resource cycles.'}
         </div>

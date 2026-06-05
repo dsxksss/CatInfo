@@ -53,8 +53,9 @@ pub fn run() {
             };
 
             let show = MenuItemBuilder::with_id("show", "Show").build(app)?;
+            let island = MenuItemBuilder::with_id("island", "Toggle Island").build(app)?;
             let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
-            let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
+            let menu = MenuBuilder::new(app).items(&[&show, &island, &quit]).build()?;
 
             let icon = Image::from_bytes(include_bytes!("../icons/icon.ico"))?;
 
@@ -66,6 +67,15 @@ pub fn run() {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
+                        }
+                    }
+                    "island" => {
+                        if let Some(window) = app.get_webview_window("island") {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.show();
+                            }
                         }
                     }
                     "quit" => {

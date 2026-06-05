@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* The island lives in a transparent, decoration-less window, so every layer up to
+   the root must stay transparent for the desktop to show through behind the pill. */
+html,
+body,
+#island-root {
+  margin: 0;
+  height: 100%;
+  background: transparent !important;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -1,18 +1,44 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, MemoryStick, ArrowDownUp, Activity } from 'lucide-react';
+import { getCurrentWindow, currentMonitor, PhysicalPosition, PhysicalSize } from '@tauri-apps/api/window';
 import { usePerfStore } from '../stores/perfStore';
 
 /**
- * Desktop "Dynamic Island" prototype.
+ * Desktop "Dynamic Island".
  *
- * A compact floating pill that morphs open on hover/click to reveal live system
- * telemetry. Reuses the existing data layer (usePerfStore, fed by useSystemStats),
- * so the backend stays untouched — this is purely a new presentation shell.
+ * Auto-hides: when the pointer leaves, it lingers briefly then retracts to a thin
+ * black sliver pinned to the top edge of the screen. Hovering the sliver brings it
+ * back. To stay unobtrusive while hidden, the OS window itself shrinks to the sliver
+ * (so it barely blocks the desktop) and grows again when revealed.
  *
- * Next step beyond this in-app prototype: host it in its own always-on-top,
- * transparent, decoration-less Tauri window so it floats over the OS.
+ * Reuses the shared telemetry (usePerfStore, fed by useSystemStats in island.tsx).
  */
+
+const LINGER_MS = 4000; // stay visible this long after the pointer leaves
+
+// Logical-px window boxes per mode (the OS window resizes to match).
+const EXPANDED_BOX = { w: 420, h: 160 };
+const COLLAPSED_BOX = { w: 232, h: 56 };
+const PEEK_BOX = { w: 150, h: 14 };
+
+// Resize + recenter the OS window to a logical box pinned to the monitor's top edge.
+async function setWindowBox(w: number, h: number) {
+  try {
+    const win = getCurrentWindow();
+    const mon = await currentMonitor();
+    const scale = mon?.scaleFactor ?? 1;
+    const pw = Math.round(w * scale);
+    const ph = Math.round(h * scale);
+    await win.setSize(new PhysicalSize(pw, ph));
+    if (mon) {
+      const x = Math.round((mon.size.width - pw) / 2);
+      await win.setPosition(new PhysicalPosition(x, 0));
+    }
+  } catch (e) {
+    console.error('Failed to resize island window:', e);
+  }
+}
 
 function loadColor(v: number): string {
   if (v >= 85) return '#f43f5e'; // rose
@@ -55,8 +81,21 @@ function fmtSpeed(kbps: number): string {
   return `${Math.round(kbps)} KB/s`;
 }
 
+type Mode = 'expanded' | 'collapsed' | 'peek';
+
+const BOX: Record<Mode, { width: number; height: number; borderRadius: number }> = {
+  expanded: { width: 372, height: 138, borderRadius: 26 },
+  collapsed: { width: 196, height: 40, borderRadius: 999 },
+  peek: { width: 124, height: 9, borderRadius: 8 },
+};
+
 export default function DynamicIsland() {
-  const [expanded, setExpanded] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [lingering, setLingering] = useState(true); // visible briefly on first mount
+  const [expanded, setExpanded] = useState(false); // only opens on click
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const shrinkTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const appliedBox = useRef({ w: EXPANDED_BOX.w, h: EXPANDED_BOX.h });
 
   const current = usePerfStore((s) => s.current);
   const cpuHistory = usePerfStore((s) => s.history.cpu);
@@ -67,23 +106,63 @@ export default function DynamicIsland() {
   const net = (current?.net_rx_kbps ?? 0) + (current?.net_tx_kbps ?? 0);
   const accent = loadColor(cpu);
 
+  const visible = hovered || lingering;
+  // Hover only reveals the minimal pill; the full card opens on click.
+  const mode: Mode = !visible ? 'peek' : expanded ? 'expanded' : 'collapsed';
+
+  // Linger countdown: keep showing for a moment after the pointer leaves.
+  useEffect(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (hovered) {
+      setLingering(true);
+    } else {
+      hideTimer.current = setTimeout(() => setLingering(false), LINGER_MS);
+    }
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  }, [hovered]);
+
+  // Once hidden, forget any click-expanded state so it reopens minimal next time.
+  useEffect(() => {
+    if (!visible && expanded) setExpanded(false);
+  }, [visible, expanded]);
+
+  // Drive the OS window to match the current mode. Grow immediately so content
+  // never clips; shrink only after the retract animation has played.
+  useEffect(() => {
+    if (shrinkTimer.current) clearTimeout(shrinkTimer.current);
+    const target = mode === 'peek' ? PEEK_BOX : mode === 'collapsed' ? COLLAPSED_BOX : EXPANDED_BOX;
+    const prev = appliedBox.current;
+    const apply = () => {
+      appliedBox.current = target;
+      setWindowBox(target.w, target.h);
+    };
+    if (target.w * target.h >= prev.w * prev.h) {
+      apply(); // growing — resize first
+    } else {
+      shrinkTimer.current = setTimeout(apply, 320); // shrinking — let content retract first
+    }
+    return () => {
+      if (shrinkTimer.current) clearTimeout(shrinkTimer.current);
+    };
+  }, [mode]);
+
   return (
-    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 flex justify-center pointer-events-none select-none">
+    <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 flex justify-center pointer-events-none select-none">
       <motion.div
-        onHoverStart={() => setExpanded(true)}
-        onHoverEnd={() => setExpanded(false)}
-        onClick={() => setExpanded((v) => !v)}
+        onHoverStart={() => setHovered(true)}
+        onHoverEnd={() => setHovered(false)}
+        onClick={() => { if (visible) setExpanded((v) => !v); }}
         initial={false}
-        animate={{
-          width: expanded ? 372 : 196,
-          height: expanded ? 138 : 40,
-          borderRadius: expanded ? 26 : 999,
-        }}
-        transition={{ type: 'spring', stiffness: 480, damping: 30, mass: 0.9 }}
-        className="pointer-events-auto cursor-pointer overflow-hidden bg-black/90 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.55)]"
+        animate={BOX[mode]}
+        transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.9 }}
+        className={`pointer-events-auto overflow-hidden bg-black/90 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.55)] ${
+          mode === 'peek' ? 'cursor-default' : 'cursor-pointer'
+        }`}
       >
         <AnimatePresence mode="wait" initial={false}>
-          {expanded ? (
+          {mode === 'expanded' && (
             <motion.div
               key="expanded"
               initial={{ opacity: 0, scale: 0.96 }}
@@ -150,7 +229,9 @@ export default function DynamicIsland() {
                 </div>
               </div>
             </motion.div>
-          ) : (
+          )}
+
+          {mode === 'collapsed' && (
             <motion.div
               key="collapsed"
               initial={{ opacity: 0 }}
@@ -171,6 +252,7 @@ export default function DynamicIsland() {
               </div>
             </motion.div>
           )}
+          {/* peek: no inner content — the bare black bar is the sliver */}
         </AnimatePresence>
       </motion.div>
     </div>

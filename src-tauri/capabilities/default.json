@@ -9,6 +9,8 @@
     "shell:allow-open",
     "core:window:allow-minimize",
     "core:window:allow-maximize",
+    "core:window:allow-show",
+    "core:window:allow-hide",
     "core:window:allow-unmaximize",
     "core:window:allow-close",
     "core:window:allow-set-always-on-top",
