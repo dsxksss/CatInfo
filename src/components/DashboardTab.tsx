@@ -123,7 +123,7 @@ export default function DashboardTab({
 
                 {/* Centered Percentage Text */}
                 <div className="absolute z-10 flex flex-col items-center">
-                  <span className="text-sm font-extrabold tracking-tighter font-mono-premium text-white"
+                  <span className="cpu-gauge-pct text-sm font-extrabold tracking-tighter font-mono-premium text-white"
                         style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
                     {cpuUsage.toFixed(0)}%
                   </span>
@@ -269,7 +269,7 @@ export default function DashboardTab({
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-zinc-800 border border-zinc-700/60">
-                      <HardDrive size={16} className={isSystem ? "text-[#006fee]" : "text-zinc-400"} />
+                      <HardDrive size={16} className={isSystem ? "text-[#006fee]" : "text-[#10b981]"} />
                     </div>
                     <div>
                       <span className="text-sm font-bold text-zinc-200">{titleText}</span>
@@ -279,9 +279,9 @@ export default function DashboardTab({
                     </div>
                   </div>
                   <span className={`text-xs font-mono-premium px-2 py-0.5 rounded border ${
-                    isSystem 
-                      ? "text-[#006fee] bg-blue-500/10 border-blue-500/20" 
-                      : "text-zinc-400 bg-zinc-800 border-zinc-700/60"
+                    isSystem
+                      ? "text-[#006fee] bg-blue-500/10 border-blue-500/20"
+                      : "text-[#10b981] bg-emerald-500/10 border-emerald-500/20"
                   }`}>
                     {isSystem 
                       ? (lang === 'zh' ? '主系统' : 'System') 
@@ -296,7 +296,7 @@ export default function DashboardTab({
                   </div>
                   <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${isSystem ? 'bg-[#006fee]' : 'bg-zinc-500'}`}
+                      className={`h-full rounded-full transition-all duration-500 ${isSystem ? 'bg-[#006fee]' : 'bg-[#10b981]'}`}
                       style={{ width: `${percentUsed.toFixed(0)}%` }}
                     ></div>
                   </div>
