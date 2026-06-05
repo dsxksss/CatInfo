@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cpu, MemoryStick, ArrowDownUp, Activity } from 'lucide-react';
+import { Cpu, MemoryStick, ArrowDownUp, Gauge, type LucideIcon } from 'lucide-react';
 import { getCurrentWindow, currentMonitor, PhysicalPosition, PhysicalSize } from '@tauri-apps/api/window';
 import { usePerfStore } from '../stores/perfStore';
 
@@ -8,18 +8,22 @@ import { usePerfStore } from '../stores/perfStore';
  * Desktop "Dynamic Island".
  *
  * Auto-hides: when the pointer leaves, it lingers briefly then retracts to a thin
- * black sliver pinned to the top edge of the screen. Hovering the sliver brings it
- * back. To stay unobtrusive while hidden, the OS window itself shrinks to the sliver
- * (so it barely blocks the desktop) and grows again when revealed.
+ * black sliver pinned to the top edge of the screen. Hovering the sliver reveals the
+ * minimal pill; clicking it opens the full card. The OS window resizes to match each
+ * phase so it barely blocks the desktop while hidden.
+ *
+ * The expanded card lets you pick which metric (CPU/RAM/NET/GPU) the island charts;
+ * the choice persists and drives the collapsed pill too.
  *
  * Reuses the shared telemetry (usePerfStore, fed by useSystemStats in island.tsx).
  */
 
 const LINGER_MS = 4000; // stay visible this long after the pointer leaves
+const STEP_MS = 650; // gap between the collapse step and the final retract to peek
 
 // Logical-px window boxes per mode (the OS window resizes to match).
-const EXPANDED_BOX = { w: 420, h: 160 };
-const COLLAPSED_BOX = { w: 232, h: 56 };
+const EXPANDED_BOX = { w: 400, h: 192 };
+const COLLAPSED_BOX = { w: 236, h: 56 };
 const PEEK_BOX = { w: 150, h: 14 };
 
 // Resize + recenter the OS window to a logical box pinned to the monitor's top edge.
@@ -82,51 +86,90 @@ function fmtSpeed(kbps: number): string {
 }
 
 type Mode = 'expanded' | 'collapsed' | 'peek';
+type MetricKey = 'cpu' | 'ram' | 'net' | 'gpu';
+
+interface Metric {
+  label: string;
+  icon: LucideIcon;
+  color: string;
+  value: string;
+  history: number[];
+}
 
 const BOX: Record<Mode, { width: number; height: number; borderRadius: number }> = {
-  expanded: { width: 372, height: 138, borderRadius: 26 },
-  collapsed: { width: 196, height: 40, borderRadius: 999 },
+  expanded: { width: 360, height: 170, borderRadius: 26 },
+  collapsed: { width: 200, height: 40, borderRadius: 999 },
   peek: { width: 124, height: 9, borderRadius: 8 },
 };
 
 export default function DynamicIsland() {
-  const [hovered, setHovered] = useState(false);
-  const [lingering, setLingering] = useState(true); // visible briefly on first mount
-  const [expanded, setExpanded] = useState(false); // only opens on click
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [mode, setMode] = useState<Mode>('collapsed');
+  const [selected, setSelected] = useState<MetricKey>(
+    () => (localStorage.getItem('wincat-island-metric') as MetricKey) || 'cpu',
+  );
+  const closeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const shrinkTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const appliedBox = useRef({ w: EXPANDED_BOX.w, h: EXPANDED_BOX.h });
 
   const current = usePerfStore((s) => s.current);
   const cpuHistory = usePerfStore((s) => s.history.cpu);
+  const memHistory = usePerfStore((s) => s.history.memory);
   const netHistory = usePerfStore((s) => s.history.net_rx);
+  const gpuHistory = usePerfStore((s) => s.history.gpu);
 
   const cpu = current?.cpu_usage ?? 0;
   const mem = current?.memory_percent ?? 0;
   const net = (current?.net_rx_kbps ?? 0) + (current?.net_tx_kbps ?? 0);
-  const accent = loadColor(cpu);
+  const gpu = (current?.gpus ?? []).reduce((m, g) => Math.max(m, g.utilization), 0);
+  const hasGpu = (current?.gpus?.length ?? 0) > 0;
 
-  const visible = hovered || lingering;
-  // Hover only reveals the minimal pill; the full card opens on click.
-  const mode: Mode = !visible ? 'peek' : expanded ? 'expanded' : 'collapsed';
+  const metrics: Record<MetricKey, Metric> = {
+    cpu: { label: 'CPU', icon: Cpu, color: loadColor(cpu), value: `${cpu.toFixed(0)}%`, history: cpuHistory },
+    ram: { label: 'RAM', icon: MemoryStick, color: '#38bdf8', value: `${mem.toFixed(0)}%`, history: memHistory },
+    net: { label: 'NET', icon: ArrowDownUp, color: '#a78bfa', value: fmtSpeed(net), history: netHistory },
+    gpu: { label: 'GPU', icon: Gauge, color: '#f472b6', value: `${gpu.toFixed(0)}%`, history: gpuHistory },
+  };
+  const metricKeys: MetricKey[] = hasGpu ? ['cpu', 'ram', 'net', 'gpu'] : ['cpu', 'ram', 'net'];
+  const activeKey: MetricKey = selected === 'gpu' && !hasGpu ? 'cpu' : selected;
+  const sel = metrics[activeKey];
 
-  // Linger countdown: keep showing for a moment after the pointer leaves.
+  const selectMetric = (k: MetricKey) => {
+    setSelected(k);
+    localStorage.setItem('wincat-island-metric', k);
+  };
+
+  const clearCloseTimers = () => {
+    closeTimers.current.forEach(clearTimeout);
+    closeTimers.current = [];
+  };
+
+  // Staged auto-hide: linger, ease expanded → collapsed, then collapsed → peek,
+  // so it retracts gradually instead of snapping straight to the sliver.
+  const scheduleClose = () => {
+    clearCloseTimers();
+    closeTimers.current.push(
+      setTimeout(() => setMode((m) => (m === 'expanded' ? 'collapsed' : m)), LINGER_MS),
+    );
+    closeTimers.current.push(
+      setTimeout(() => setMode('peek'), LINGER_MS + STEP_MS),
+    );
+  };
+
+  const reveal = () => {
+    clearCloseTimers();
+    setMode((m) => (m === 'peek' ? 'collapsed' : m));
+  };
+
+  const toggleExpand = () => {
+    setMode((m) => (m === 'peek' ? m : m === 'expanded' ? 'collapsed' : 'expanded'));
+  };
+
+  // Show briefly on first mount, then retract through the same staged close.
   useEffect(() => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (hovered) {
-      setLingering(true);
-    } else {
-      hideTimer.current = setTimeout(() => setLingering(false), LINGER_MS);
-    }
-    return () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-    };
-  }, [hovered]);
-
-  // Once hidden, forget any click-expanded state so it reopens minimal next time.
-  useEffect(() => {
-    if (!visible && expanded) setExpanded(false);
-  }, [visible, expanded]);
+    scheduleClose();
+    return clearCloseTimers;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Drive the OS window to match the current mode. Grow immediately so content
   // never clips; shrink only after the retract animation has played.
@@ -151,13 +194,13 @@ export default function DynamicIsland() {
   return (
     <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 flex justify-center pointer-events-none select-none">
       <motion.div
-        onHoverStart={() => setHovered(true)}
-        onHoverEnd={() => setHovered(false)}
-        onClick={() => { if (visible) setExpanded((v) => !v); }}
+        onHoverStart={reveal}
+        onHoverEnd={scheduleClose}
+        onClick={toggleExpand}
         initial={false}
         animate={BOX[mode]}
         transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.9 }}
-        className={`pointer-events-auto overflow-hidden bg-black/90 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.55)] ${
+        className={`pointer-events-auto overflow-hidden bg-[#0b0c10] border border-white/10 ${
           mode === 'peek' ? 'cursor-default' : 'cursor-pointer'
         }`}
       >
@@ -169,7 +212,7 @@ export default function DynamicIsland() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.18 }}
-              className="w-full h-full p-3.5 flex flex-col gap-2.5"
+              className="w-full h-full p-3 flex flex-col gap-2"
             >
               {/* Header */}
               <div className="flex items-center justify-between">
@@ -180,52 +223,36 @@ export default function DynamicIsland() {
                 <span className="text-[9px] font-mono text-zinc-600">SYSTEM</span>
               </div>
 
-              {/* Metric tiles */}
-              <div className="grid grid-cols-3 gap-2 flex-1">
-                {/* CPU with sparkline */}
-                <div className="rounded-xl bg-white/5 border border-white/5 p-2 flex flex-col justify-between">
-                  <div className="flex items-center gap-1 text-zinc-400">
-                    <Cpu size={11} style={{ color: accent }} />
-                    <span className="text-[9px] font-bold uppercase tracking-wide">CPU</span>
-                  </div>
-                  <div className="text-base font-bold leading-none" style={{ color: accent }}>
-                    {cpu.toFixed(0)}<span className="text-[10px] ml-0.5">%</span>
-                  </div>
-                  <div className="h-5 -mx-0.5">
-                    <Sparkline data={cpuHistory} color={accent} />
-                  </div>
-                </div>
+              {/* Metric selector chips */}
+              <div className="flex gap-1.5">
+                {metricKeys.map((k) => {
+                  const m = metrics[k];
+                  const isActive = k === activeKey;
+                  const Icon = m.icon;
+                  return (
+                    <button
+                      key={k}
+                      onClick={(e) => { e.stopPropagation(); selectMetric(k); }}
+                      className={`flex-1 flex items-center justify-center gap-1 px-1.5 py-1 rounded-lg border text-[9px] font-bold uppercase tracking-wide transition-colors ${
+                        isActive ? '' : 'border-white/5 bg-white/[0.04] text-zinc-400 hover:text-zinc-200'
+                      }`}
+                      style={isActive ? { color: m.color, borderColor: `${m.color}66`, backgroundColor: `${m.color}1a` } : undefined}
+                    >
+                      <Icon size={10} style={isActive ? { color: m.color } : undefined} />
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-                {/* RAM */}
-                <div className="rounded-xl bg-white/5 border border-white/5 p-2 flex flex-col justify-between">
-                  <div className="flex items-center gap-1 text-zinc-400">
-                    <MemoryStick size={11} className="text-sky-400" />
-                    <span className="text-[9px] font-bold uppercase tracking-wide">RAM</span>
-                  </div>
-                  <div className="text-base font-bold leading-none text-sky-400">
-                    {mem.toFixed(0)}<span className="text-[10px] ml-0.5">%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full bg-sky-400"
-                      animate={{ width: `${Math.min(100, mem)}%` }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 26 }}
-                    />
-                  </div>
+              {/* Big chart of the selected metric */}
+              <div className="flex-1 rounded-xl bg-white/5 border border-white/5 p-2.5 flex flex-col min-h-0">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">{sel.label}</span>
+                  <span className="text-lg font-bold leading-none" style={{ color: sel.color }}>{sel.value}</span>
                 </div>
-
-                {/* Network */}
-                <div className="rounded-xl bg-white/5 border border-white/5 p-2 flex flex-col justify-between">
-                  <div className="flex items-center gap-1 text-zinc-400">
-                    <ArrowDownUp size={11} className="text-violet-400" />
-                    <span className="text-[9px] font-bold uppercase tracking-wide">NET</span>
-                  </div>
-                  <div className="text-[13px] font-bold leading-none text-violet-300">
-                    {fmtSpeed(net)}
-                  </div>
-                  <div className="h-5 -mx-0.5">
-                    <Sparkline data={netHistory} color="#a78bfa" />
-                  </div>
+                <div className="flex-1 mt-1.5 -mx-0.5 min-h-0">
+                  <Sparkline data={sel.history} color={sel.color} />
                 </div>
               </div>
             </motion.div>
@@ -240,15 +267,15 @@ export default function DynamicIsland() {
               transition={{ duration: 0.12 }}
               className="w-full h-full px-3.5 flex items-center justify-between gap-2"
             >
-              <div className="flex items-center gap-1.5">
-                <Activity size={13} style={{ color: accent }} />
-                <span className="text-[11px] font-bold text-zinc-300">CPU</span>
-                <span className="text-[12px] font-bold tabular-nums" style={{ color: accent }}>
-                  {cpu.toFixed(0)}%
+              <div className="flex items-center gap-1.5 min-w-0">
+                <sel.icon size={13} style={{ color: sel.color }} />
+                <span className="text-[11px] font-bold text-zinc-300">{sel.label}</span>
+                <span className="text-[12px] font-bold tabular-nums truncate" style={{ color: sel.color }}>
+                  {sel.value}
                 </span>
               </div>
-              <div className="w-12 h-4 opacity-80">
-                <Sparkline data={cpuHistory} color={accent} />
+              <div className="w-12 h-4 shrink-0 opacity-80">
+                <Sparkline data={sel.history} color={sel.color} />
               </div>
             </motion.div>
           )}
