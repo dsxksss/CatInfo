@@ -22,6 +22,8 @@ import PerformanceTab from './components/PerformanceTab';
 import ProcessTab from './components/ProcessTab';
 import NetworkTab from './components/NetworkTab';
 import SettingsTab from './components/SettingsTab';
+import NavParticleBurst from './components/NavParticleBurst';
+import { playJellyPop } from './utils/sound';
 
 export default function App() {
   // Launch Rust background telemetry collector
@@ -139,10 +141,23 @@ export default function App() {
   const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     const doc = document as any;
+    const root = document.documentElement;
 
-    if (!doc.startViewTransition) {
+    const applyTheme = () => {
       setTheme(nextTheme);
       localStorage.setItem('wincat-theme', nextTheme);
+    };
+
+    // Suppress every element-level color/background transition during the swap so
+    // the whole UI recolors as one unit — otherwise each component eases at its
+    // own duration and the theme change looks ragged. The circular view-transition
+    // reveal remains the single, unified animation.
+    root.classList.add('theme-switching');
+
+    if (!doc.startViewTransition) {
+      applyTheme();
+      // Re-enable transitions once the instant recolor has painted.
+      requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')));
       return;
     }
 
@@ -153,10 +168,9 @@ export default function App() {
       Math.max(y, window.innerHeight - y)
     );
 
-    const transition = doc.startViewTransition(() => {
-      setTheme(nextTheme);
-      localStorage.setItem('wincat-theme', nextTheme);
-    });
+    const transition = doc.startViewTransition(applyTheme);
+
+    transition.finished.finally(() => root.classList.remove('theme-switching'));
 
     transition.ready.then(() => {
       document.documentElement.animate(
@@ -283,10 +297,22 @@ export default function App() {
 
   const padZero = (num: number) => num.toString().padStart(2, '0');
 
+  // Sidebar navigation entries (drives the animated menu map)
+  const navItems = [
+    { id: 'dashboard' as const, icon: LayoutDashboard, label: lang === 'zh' ? '总览' : 'Overview' },
+    { id: 'performance' as const, icon: Activity, label: t.telemetryChart },
+    { id: 'processes' as const, icon: Terminal, label: t.processesList },
+    { id: 'network' as const, icon: Network, label: lang === 'zh' ? '网络' : 'Network interface' },
+    { id: 'settings' as const, icon: SettingsIcon, label: lang === 'zh' ? '设置' : 'Diagnostics panel' },
+  ];
+
   const getStressColorClass = (usage: number, active: boolean) => {
     if (active) {
-      if (usage >= 80) return 'bg-red-950/40 text-red-200 border-red-400/40';
-      if (usage >= 50) return 'bg-amber-950/40 text-amber-200 border-amber-400/40';
+      // Keep the load color identity on the active pill, but always use white
+      // text so it stays crisp on the colored fills (the old light-tinted text
+      // turned muddy over the emerald pill).
+      if (usage >= 80) return 'bg-red-500/90 text-white border-red-400/50';
+      if (usage >= 50) return 'bg-amber-500/90 text-white border-amber-400/50';
       return 'bg-white/20 text-white border-white/30';
     } else {
       if (usage >= 80) return 'bg-red-500/10 text-red-400 border-red-500/20';
@@ -297,7 +323,7 @@ export default function App() {
 
   return (
     <div className="w-screen h-screen bg-[#0b0c10] dark:bg-[#08090d] text-zinc-300 font-sans flex overflow-hidden relative select-none antialiased">
-      
+
       {/* Premium floating glass-scene background blurs */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-emerald-500/10 dark:bg-emerald-600/8 blur-[130px] pointer-events-none animate-pulse duration-[10000ms]"></div>
       <div className="absolute -bottom-40 -right-40 w-[700px] h-[700px] rounded-full bg-blue-500/15 dark:bg-blue-600/8 blur-[150px] pointer-events-none"></div>
@@ -334,92 +360,79 @@ export default function App() {
                 <div className="px-3 py-1">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono-premium">{t.views}</span>
                 </div>
-                
+
                 <div className="space-y-1.5">
-                  {/* Dashboard Tab */}
-                  <button
-                    onClick={() => setActiveTab('dashboard')}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between transition-all duration-300 cursor-pointer text-xs ${
-                      activeTab === 'dashboard' 
-                        ? 'bg-[#10b981] text-white font-bold shadow-[0_8px_20px_rgba(16,185,129,0.25)] border border-[#10b981]/25 scale-[1.02]' 
-                        : 'text-zinc-400 hover:bg-[#10b981]/8 hover:text-[#10b981]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <LayoutDashboard size={14} className={activeTab === 'dashboard' ? 'text-white' : 'text-zinc-500 group-hover:text-[#10b981]'} />
-                      <span>{lang === 'zh' ? '总览' : 'Overview'}</span>
-                    </div>
-                  </button>
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <motion.button
+                        key={item.id}
+                        onClick={() => { playJellyPop(); setActiveTab(item.id); }}
+                        whileHover={isActive ? { scale: 1.02 } : { x: 4, scale: 1.01 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: 'spring', stiffness: 600, damping: 20, mass: 0.6 }}
+                        className={`group relative w-full px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between cursor-pointer text-xs ${
+                          isActive ? 'text-white font-bold nav-active-content' : 'text-zinc-400 hover:text-[#10b981]'
+                        }`}
+                      >
+                        {/* Shared sliding highlight — slams between tabs with a slight overshoot */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeNavPill"
+                            className="absolute inset-0 rounded-xl bg-[#10b981] shadow-[0_8px_20px_rgba(16,185,129,0.25)] border border-[#10b981]/25"
+                            transition={{ type: 'spring', stiffness: 600, damping: 22, mass: 0.8 }}
+                          />
+                        )}
 
-                  {/* Performance navigation tab */}
-                  <button
-                    onClick={() => setActiveTab('performance')}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between transition-all duration-300 cursor-pointer text-xs ${
-                      activeTab === 'performance' 
-                        ? 'bg-[#10b981] text-white font-bold shadow-[0_8px_20px_rgba(16,185,129,0.25)] border border-[#10b981]/25 scale-[1.02]' 
-                        : 'text-zinc-400 hover:bg-[#10b981]/8 hover:text-[#10b981]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Activity size={14} className={activeTab === 'performance' ? 'text-white' : 'text-zinc-500 group-hover:text-[#10b981]'} />
-                      <span>{t.telemetryChart}</span>
-                    </div>
-                    <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border transition-all ${
-                      getStressColorClass(cpuUsage, activeTab === 'performance')
-                    }`}>
-                      {cpuUsage.toFixed(0)}%
-                    </span>
-                  </button>
+                        {/* Particle-collision burst on landing */}
+                        {isActive && <NavParticleBurst trigger={item.id} />}
 
-                  {/* Processes navigation tab */}
-                  <button
-                    onClick={() => setActiveTab('processes')}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between transition-all duration-300 cursor-pointer text-xs ${
-                      activeTab === 'processes' 
-                        ? 'bg-[#10b981] text-white font-bold shadow-[0_8px_20px_rgba(16,185,129,0.25)] border border-[#10b981]/25 scale-[1.02]' 
-                        : 'text-zinc-400 hover:bg-[#10b981]/8 hover:text-[#10b981]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Terminal size={14} className={activeTab === 'processes' ? 'text-white' : 'text-zinc-500 group-hover:text-[#10b981]'} />
-                      <span>{t.processesList}</span>
-                    </div>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'processes' ? 'bg-white/25 text-white' : 'bg-[#10b981]/15 text-[#10b981]'
-                    }`}>
-                      {processes.length}
-                    </span>
-                  </button>
+                        {/* Travelling accent bar on the left edge of the active pill */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeNavBar"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-white/80 shadow-[0_0_10px_rgba(255,255,255,0.6)]"
+                            transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                          />
+                        )}
 
-                  {/* Network tab */}
-                  <button
-                    onClick={() => setActiveTab('network')}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between transition-all duration-300 cursor-pointer text-xs ${
-                      activeTab === 'network' 
-                        ? 'bg-[#10b981] text-white font-bold shadow-[0_8px_20px_rgba(16,185,129,0.25)] border border-[#10b981]/25 scale-[1.02]' 
-                        : 'text-zinc-400 hover:bg-[#10b981]/8 hover:text-[#10b981]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Network size={14} className={activeTab === 'network' ? 'text-white' : 'text-zinc-500 group-hover:text-[#10b981]'} />
-                      <span>{lang === 'zh' ? '网络' : 'Network interface'}</span>
-                    </div>
-                  </button>
+                        {/* Soft hover wash for inactive items */}
+                        {!isActive && (
+                          <span className="absolute inset-0 rounded-xl bg-[#10b981]/0 group-hover:bg-[#10b981]/8 transition-colors duration-300" />
+                        )}
 
-                  {/* Settings tab */}
-                  <button
-                    onClick={() => setActiveTab('settings')}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-left flex items-center justify-between transition-all duration-300 cursor-pointer text-xs ${
-                      activeTab === 'settings' 
-                        ? 'bg-[#10b981] text-white font-bold shadow-[0_8px_20px_rgba(16,185,129,0.25)] border border-[#10b981]/25 scale-[1.02]' 
-                        : 'text-zinc-400 hover:bg-[#10b981]/8 hover:text-[#10b981]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <SettingsIcon size={14} className={activeTab === 'settings' ? 'text-white' : 'text-zinc-500 group-hover:text-[#10b981]'} />
-                      <span>{lang === 'zh' ? '设置' : 'Diagnostics panel'}</span>
-                    </div>
-                  </button>
+                        <div className="relative z-10 flex items-center gap-2.5">
+                          <motion.span
+                            className="inline-flex"
+                            animate={isActive
+                              ? { scale: 1.18, rotate: [0, -22, 18, -12, 7, 0], x: [0, -2, 2, -1, 0] }
+                              : { scale: 1, rotate: 0, x: 0 }}
+                            transition={{ duration: 0.35, ease: 'easeOut' }}
+                          >
+                            <Icon size={14} className={isActive ? 'text-white' : 'text-zinc-500 group-hover:text-[#10b981]'} />
+                          </motion.span>
+                          <span>{item.label}</span>
+                        </div>
+
+                        {/* Right-side live badges */}
+                        {item.id === 'performance' && (
+                          <span className={`relative z-10 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border transition-all ${
+                            getStressColorClass(cpuUsage, isActive)
+                          }`}>
+                            {cpuUsage.toFixed(0)}%
+                          </span>
+                        )}
+                        {item.id === 'processes' && (
+                          <span className={`relative z-10 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            isActive ? 'bg-white/25 text-white' : 'bg-[#10b981]/15 text-[#10b981]'
+                          }`}>
+                            {processes.length}
+                          </span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

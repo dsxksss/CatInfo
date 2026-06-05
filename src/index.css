@@ -112,6 +112,24 @@
   border: 1px solid rgba(16, 185, 129, 0.05);
 }
 
+/* The active sidebar item sits on a green pill rendered as a sibling layer, so the
+   light-mode `.text-white` override would darken its label/icon/badge. Force them
+   white. Uses `html.light` so it outranks the equally-specific `.light .text-white`
+   rule defined further down (which would otherwise win on source order). */
+html.light .nav-active-content,
+html.light .nav-active-content * {
+  color: #ffffff !important;
+}
+
+/* While the theme is being swapped, freeze all element-level transitions so the
+   whole UI recolors instantly as one unit. The circular view-transition reveal is
+   the only animation that plays, keeping the switch perfectly uniform. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
 /* Telegram View Transition custom circles config */
 ::view-transition-old(root),
 ::view-transition-new(root) {
