@@ -127,9 +127,8 @@ impl SysCollector {
         let disks = Disks::new_with_refreshed_list();
         let networks = Networks::new_with_refreshed_list();
 
-        // First refresh to get baselines
+        // First refresh to establish the CPU/IO baselines for the next delta.
         sys.refresh_all();
-        sys.refresh_cpu_all();
 
         Self {
             sys,
@@ -144,8 +143,12 @@ impl SysCollector {
     }
 
     pub fn collect(&mut self) -> SystemStats {
+        // One refresh per tick. sysinfo derives CPU% from the busy-time delta
+        // between two refreshes, so the ~1s gap between collect() calls is the
+        // measurement window — matching what Task Manager shows. Refreshing CPU
+        // twice back-to-back (refresh_all + refresh_cpu_all) measured over a
+        // near-zero window and reported inflated, noisy usage.
         self.sys.refresh_all();
-        self.sys.refresh_cpu_all();
         self.disks.refresh(true);
         self.networks.refresh(true);
 
