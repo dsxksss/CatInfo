@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Activity, Terminal, Network, Settings as SettingsIcon, 
-  RefreshCw, Sun, Moon, LayoutDashboard, Search,
+  RefreshCw, Sun, Moon, LayoutDashboard,
   Minus, Square, X
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
@@ -109,9 +109,6 @@ export default function App() {
 
   // Network local latency (heartbeat fluctuation simulated)
   const [heartbeatLatency, setHeartbeatLatency] = useState(14);
-
-  // Search filter query
-  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
 
   // Pull telemetry variables from Zustand store
   const currentStats = usePerfStore((s) => s.current);
@@ -479,21 +476,6 @@ export default function App() {
                 </span>
               </div>
 
-              {/* Fuzzy Search indicator */}
-              <div className="relative hidden lg:block">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                <input
-                  type="text"
-                  placeholder={t.fuzzyFilter}
-                  value={globalSearchQuery}
-                  onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                  className="bg-zinc-950/80 border border-[#141822] focus:border-zinc-800 focus:bg-zinc-900 rounded-lg text-xs py-1.5 pl-8 pr-12 text-zinc-200 placeholder-zinc-600 outline-none w-44 transition-all font-mono-premium"
-                />
-                <span className="absolute right-2 text-[9px] bg-zinc-900/40 text-zinc-500 border border-zinc-800 font-mono-premium px-1 py-0.5 rounded top-1/2 -translate-y-1/2">
-                  ⌘ F
-                </span>
-              </div>
-
               {/* Bilingual Language Switcher */}
               <button
                 onClick={toggleLanguage}
@@ -600,8 +582,6 @@ export default function App() {
                     onKillProcessTree={handleKillProcessTree}
                     onKillProcessElevated={handleKillProcessElevated}
                     lang={lang}
-                    searchQuery={globalSearchQuery || undefined}
-                    onSearchQueryChange={setGlobalSearchQuery}
                     loadIconForPid={loadIconForPid}
                     confirmKill={confirmKill}
                   />
